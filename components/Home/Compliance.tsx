@@ -26,7 +26,7 @@ const Compliance = () => {
                         <span className="badge badge-outline-success !text-xs uppercase tracking-wide">SASRA Compliance</span>
                         <h2 className="mt-3 text-3xl font-extrabold text-black dark:text-white-light">Your quarterly returns, ready in one click.</h2>
                         <p className="mt-3 text-white-dark">
-                            SmartSurf Sacco auto-generates every prudential return SASRA requires, straight from your live ledger — no re-typing numbers, no last-minute scramble.
+                            SmoothSurf Sacco auto-generates every prudential return SASRA requires, straight from your live ledger — no re-typing numbers, no last-minute scramble.
                         </p>
 
                         <ul className="mt-6 space-y-2">

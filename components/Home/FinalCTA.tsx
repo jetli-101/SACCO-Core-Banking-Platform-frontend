@@ -33,10 +33,10 @@ const FinalCTA = () => {
         <section id="book-demo" className="bg-gradient-to-r from-primary to-[#c2410c] py-16 text-white">
             <div className="container mx-auto px-5 text-center">
                 <h2 className="text-3xl font-extrabold md:text-4xl">Your next SASRA quarterly return is due in {weeks} weeks. Be ready.</h2>
-                <p className="mx-auto mt-3 max-w-xl text-white/90">Book a demo and see your own ledger, loans, and compliance reports running on SmartSurf Sacco before your next board meeting.</p>
+                <p className="mx-auto mt-3 max-w-xl text-white/90">Book a demo and see your own ledger, loans, and compliance reports running on SmoothSurf Sacco before your next board meeting.</p>
 
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                    <Button href="/auth/boxed-signup" variant="dark" size="lg" className="!border-white !bg-white !text-primary hover:!bg-white/90">
+                    <Button href="/auth/register" variant="dark" size="lg" className="!border-white !bg-white !text-primary hover:!bg-white/90">
                         Book a Demo
                     </Button>
                     <Button variant="outline-primary" size="lg" className="!border-white !text-white hover:!bg-white hover:!text-primary" onClick={() => setProposalOpen(true)}>
@@ -50,7 +50,7 @@ const FinalCTA = () => {
                 {submitted ? (
                     <div className="flex flex-col items-center gap-3 py-4 text-center">
                         <IconCircleCheck className="h-10 w-10 text-success" />
-                        <p className="font-semibold text-black dark:text-white-light">Thanks — we'll email the technical proposal shortly.</p>
+                        <p className="font-semibold text-black dark:text-white-light">Thanks — we’ll email the technical proposal shortly.</p>
                     </div>
                 ) : (
                     <form className="space-y-4" onSubmit={handleSubmit}>

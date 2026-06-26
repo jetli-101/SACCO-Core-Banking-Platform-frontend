@@ -101,7 +101,7 @@ const themeConfigSlice = createSlice({
         },
 
         setPageTitle(state, { payload }) {
-            document.title = `${payload} | SmartSurf Sacco`;
+            document.title = `${payload} | SmoothSurf Sacco`;
         },
     },
 });

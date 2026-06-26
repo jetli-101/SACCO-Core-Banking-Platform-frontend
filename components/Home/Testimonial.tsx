@@ -20,8 +20,11 @@ const Testimonial = () => {
                         ))}
                     </div>
 
-                    <p className="mt-6 text-lg italic text-black dark:text-white-light">
-                        "We went from dreading every quarter-end to generating our SASRA returns the same afternoon. Our members can finally see their balances on their phones — something we never thought we'd be able to offer."
+                    <p className="relative mt-6 text-lg italic text-black dark:text-white-light">
+                        <span className="absolute -left-2 -top-6 text-6xl text-primary/20" aria-hidden="true">
+                            “
+                        </span>
+                        We went from dreading every quarter-end to generating our SASRA returns the same afternoon. Our members can finally see their balances on their phones — something we never thought we’d be able to offer.
                     </p>
 
                     <div className="mt-6 flex items-center justify-center gap-3">

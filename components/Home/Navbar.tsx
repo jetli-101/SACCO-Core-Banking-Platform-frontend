@@ -45,10 +45,10 @@ const Navbar = () => {
                 </ul>
 
                 <div className="hidden items-center gap-3 md:flex">
-                    <Button href="/auth/boxed-signin" variant="outline-primary" size="sm">
+                    <Button href="/auth/login" variant="outline-primary" size="sm">
                         Login
                     </Button>
-                    <Button href="/auth/boxed-signup" size="sm">
+                    <Button href="/auth/register" size="sm">
                         Register
                     </Button>
                 </div>
@@ -70,10 +70,10 @@ const Navbar = () => {
                         ))}
                     </ul>
                     <div className="flex gap-3">
-                        <Button href="/auth/boxed-signin" variant="outline-primary" size="sm" fullWidth>
+                        <Button href="/auth/login" variant="outline-primary" size="sm" fullWidth>
                             Login
                         </Button>
-                        <Button href="/auth/boxed-signup" size="sm" fullWidth>
+                        <Button href="/auth/register" size="sm" fullWidth>
                             Register
                         </Button>
                     </div>

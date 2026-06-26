@@ -3,7 +3,7 @@ interface WaveDividerProps {
     className?: string;
 }
 
-// A hand-drawn-feeling wave, echoing the SmartSurf logo mark, used to break the
+// A hand-drawn-feeling wave, echoing the SmoothSurf logo mark, used to break the
 // hard rectangular seams between sections instead of a straight line.
 const WaveDivider = ({ flip = false, className = '' }: WaveDividerProps) => {
     return (

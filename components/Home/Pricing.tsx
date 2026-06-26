@@ -52,7 +52,7 @@ const Pricing = () => {
             <div className="container mx-auto px-5">
                 <div className="mx-auto max-w-2xl text-center">
                     <h2 className="text-3xl font-extrabold text-black dark:text-white-light">Simple pricing, real value.</h2>
-                    <p className="mt-3 text-white-dark">Less than one staff member's monthly salary — for the whole year, for the whole SACCO.</p>
+                    <p className="mt-3 text-white-dark">Less than one staff member’s monthly salary — for the whole year, for the whole SACCO.</p>
                 </div>
 
                 <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
