@@ -3,44 +3,8 @@
 /* tippy css */
 @import './tippy.css';
 
-/* swiper css */
-@import './swiper.css';
-
-/* Elements - Progressbar */
-@import './progressbar.css';
-
-/* Data tables css */
-@import './datatables.css';
-
-/* scrumboard */
-@import './scrumboard.css';
-
-/* calendar css */
-@import './fullcalendar.css';
-
-/* sweetalert css */
-@import './sweetalert.css';
-
-/* flatpickr css */
-@import './flatpickr.css';
-
-/* quill-editor css */
-@import './quill-editor.css';
-
-/* markdown-editor css */
-@import './markdown-editor.css';
-
-/* file upload with preview */
-@import './file-upload-preview.css';
-
-/* dragndrop*/
-@import './dragndrop.css';
-
 /* form element*/
 @import './form-elements.css';
-
-/* Select2*/
-@import './select2.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -327,7 +291,7 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
     }
 
     .btn-gradient {
-        @apply bg-gradient-to-r from-[#EF1262] to-[#4361EE] text-white hover:from-[#4361EE] hover:to-[#EF1262];
+        @apply bg-gradient-to-r from-[#EF1262] to-[#F97316] text-white hover:from-[#F97316] hover:to-[#EF1262];
     }
 
     /* Badge */
@@ -433,7 +397,7 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
 
     .form-checkbox.outline-primary:checked {
         @apply border-primary bg-transparent;
-        background-image: url("data:image/svg+xml,<svg viewBox='0 0 16 16' fill='%234361ee' xmlns='http://www.w3.org/2000/svg'><path d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/></svg>");
+        background-image: url("data:image/svg+xml,<svg viewBox='0 0 16 16' fill='%23f97316' xmlns='http://www.w3.org/2000/svg'><path d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/></svg>");
     }
     .form-checkbox.outline-secondary:checked {
         @apply border-secondary bg-transparent;
