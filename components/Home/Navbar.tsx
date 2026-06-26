@@ -1,0 +1,86 @@
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Button from '@/components/ui/Button';
+import IconMenu from '@/components/Icon/IconMenu';
+import IconX from '@/components/Icon/IconX';
+
+const navLinks = [
+    { label: 'Features', href: '#solution' },
+    { label: 'AI Underwriting', href: '#ai-demo' },
+    { label: 'Compliance', href: '#compliance' },
+    { label: 'Pricing', href: '#pricing' },
+];
+
+const Navbar = () => {
+    const [scrolled, setScrolled] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        window.addEventListener('scroll', onScroll);
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    return (
+        <header className={`sticky top-0 z-50 w-full transition-all ${scrolled ? 'bg-white/90 shadow-sm backdrop-blur dark:bg-[#060818]/90' : 'bg-transparent'}`}>
+            <nav className="container mx-auto flex items-center justify-between px-5 py-4">
+                <Link href="/" className="flex shrink-0 items-center gap-2">
+                    <img src="/assets/images/logo.svg" alt="logo" className="w-9" />
+                    <span className="flex flex-col leading-none">
+                        <span className="text-xl font-extrabold text-black dark:text-white-light">
+                            Smart<span className="text-primary">Surf</span>
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white-dark">Sacco</span>
+                    </span>
+                </Link>
+
+                <ul className="hidden items-center gap-8 font-semibold text-black/70 dark:text-white-dark md:flex">
+                    {navLinks.map((link) => (
+                        <li key={link.href}>
+                            <a href={link.href} className="transition hover:text-primary">
+                                {link.label}
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+
+                <div className="hidden items-center gap-3 md:flex">
+                    <Button href="/auth/boxed-signin" variant="outline-primary" size="sm">
+                        Login
+                    </Button>
+                    <Button href="/auth/boxed-signup" size="sm">
+                        Register
+                    </Button>
+                </div>
+
+                <button type="button" className="text-black dark:text-white-light md:hidden" onClick={() => setMobileOpen((open) => !open)} aria-label="Toggle menu">
+                    {mobileOpen ? <IconX /> : <IconMenu />}
+                </button>
+            </nav>
+
+            {mobileOpen && (
+                <div className="border-t border-white-light bg-white px-5 pb-5 dark:border-white/10 dark:bg-[#060818] md:hidden">
+                    <ul className="space-y-3 py-4 font-semibold text-black/70 dark:text-white-dark">
+                        {navLinks.map((link) => (
+                            <li key={link.href}>
+                                <a href={link.href} onClick={() => setMobileOpen(false)} className="block">
+                                    {link.label}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                    <div className="flex gap-3">
+                        <Button href="/auth/boxed-signin" variant="outline-primary" size="sm" fullWidth>
+                            Login
+                        </Button>
+                        <Button href="/auth/boxed-signup" size="sm" fullWidth>
+                            Register
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </header>
+    );
+};
+
+export default Navbar;
