@@ -10,15 +10,11 @@ import { useRouter } from 'next/router';
 import IconCaretsDown from '@/components/Icon/IconCaretsDown';
 import IconMenuDashboard from '@/components/Icon/Menu/IconMenuDashboard';
 import IconCaretDown from '@/components/Icon/IconCaretDown';
-import IconMinus from '@/components/Icon/IconMinus';
-import IconMenuUsers from '@/components/Icon/Menu/IconMenuUsers';
-import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
-import IconMenuAuthentication from '@/components/Icon/Menu/IconMenuAuthentication';
+import { sidebarSections } from './sidebarNav';
 
 const Sidebar = () => {
     const router = useRouter();
     const [currentMenu, setCurrentMenu] = useState<string>('');
-    const [errorSubMenu, setErrorSubMenu] = useState(false);
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
     const toggleMenu = (value: string) => {
@@ -73,7 +69,7 @@ const Sidebar = () => {
                     <div className="flex items-center justify-between px-4 py-3">
                         <Link href="/dashboard" className="main-logo flex shrink-0 items-center">
                             <img className="ml-[5px] w-8 flex-none" src="/assets/images/logo.svg" alt="logo" />
-                            <span className="align-middle text-2xl font-semibold ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light lg:inline">SmartSurf</span>
+                            <span className="align-middle text-2xl font-semibold ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light lg:inline">SmoothSurf</span>
                         </Link>
 
                         <button
@@ -95,149 +91,32 @@ const Sidebar = () => {
                                 </Link>
                             </li>
 
-                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
-                                <IconMinus className="hidden h-5 w-4 flex-none" />
-                                <span>{t('user_and_pages')}</span>
-                            </h2>
+                            {sidebarSections.map((section) => (
+                                <li key={section.key} className="menu nav-item">
+                                    <button type="button" className={`${currentMenu === section.key ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu(section.key)}>
+                                        <div className="flex items-center">
+                                            <section.icon className="shrink-0 group-hover:!text-primary" />
+                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t(section.label)}</span>
+                                        </div>
 
-                            <li className="menu nav-item">
-                                <button type="button" className={`${currentMenu === 'users' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('users')}>
-                                    <div className="flex items-center">
-                                        <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('users')}</span>
-                                    </div>
+                                        <div className={currentMenu !== section.key ? '-rotate-90 rtl:rotate-90' : ''}>
+                                            <IconCaretDown />
+                                        </div>
+                                    </button>
 
-                                    <div className={currentMenu !== 'users' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-
-                                <AnimateHeight duration={300} height={currentMenu === 'users' ? 'auto' : 0}>
-                                    <ul className="sub-menu text-gray-500">
-                                        <li>
-                                            <Link href="/users/profile">{t('profile')}</Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/users/user-account-settings">{t('account_settings')}</Link>
-                                        </li>
-                                    </ul>
-                                </AnimateHeight>
-                            </li>
-
-                            <li className="menu nav-item">
-                                <button type="button" className={`${currentMenu === 'page' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('page')}>
-                                    <div className="flex items-center">
-                                        <IconMenuPages className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('pages')}</span>
-                                    </div>
-
-                                    <div className={currentMenu !== 'page' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-
-                                <AnimateHeight duration={300} height={currentMenu === 'page' ? 'auto' : 0}>
-                                    <ul className="sub-menu text-gray-500">
-                                        <li className="menu nav-item">
-                                            <button
-                                                type="button"
-                                                className={`${
-                                                    errorSubMenu ? 'open' : ''
-                                                } w-full before:h-[5px] before:w-[5px] before:rounded before:bg-gray-300 hover:bg-gray-100 ltr:before:mr-2 rtl:before:ml-2 dark:text-[#888ea8] dark:hover:bg-gray-900`}
-                                                onClick={() => setErrorSubMenu(!errorSubMenu)}
-                                            >
-                                                {t('error')}
-                                                <div className={`${errorSubMenu ? '-rotate-90 rtl:rotate-90' : ''} ltr:ml-auto rtl:mr-auto`}>
-                                                    <IconCaretsDown fill={true} className="h-4 w-4" />
-                                                </div>
-                                            </button>
-                                            <AnimateHeight duration={300} height={errorSubMenu ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <a href="/pages/error404" target="_blank">
-                                                            {t('404')}
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a href="/pages/error500" target="_blank">
-                                                            {t('500')}
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a href="/pages/error503" target="_blank">
-                                                            {t('503')}
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight>
-                                        </li>
-
-                                        <li>
-                                            <Link href="/pages/maintenence" target="_blank">
-                                                {t('maintenence')}
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </AnimateHeight>
-                            </li>
-
-                            <li className="menu nav-item">
-                                <button type="button" className={`${currentMenu === 'auth' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('auth')}>
-                                    <div className="flex items-center">
-                                        <IconMenuAuthentication className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('authentication')}</span>
-                                    </div>
-
-                                    <div className={currentMenu !== 'auth' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-
-                                <AnimateHeight duration={300} height={currentMenu === 'auth' ? 'auto' : 0}>
-                                    <ul className="sub-menu text-gray-500">
-                                        <li>
-                                            <Link href="/auth/boxed-signin" target="_blank">
-                                                {t('login_boxed')}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/auth/boxed-signup" target="_blank">
-                                                {t('register_boxed')}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/auth/boxed-lockscreen" target="_blank">
-                                                {t('unlock_boxed')}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/auth/boxed-password-reset" target="_blank">
-                                                {t('recover_id_boxed')}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/auth/cover-login" target="_blank">
-                                                {t('login_cover')}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/auth/cover-register" target="_blank">
-                                                {t('register_cover')}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/auth/cover-lockscreen" target="_blank">
-                                                {t('unlock_cover')}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/auth/cover-password-reset" target="_blank">
-                                                {t('recover_id_cover')}
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </AnimateHeight>
-                            </li>
+                                    <AnimateHeight duration={300} height={currentMenu === section.key ? 'auto' : 0}>
+                                        <ul className="sub-menu text-gray-500">
+                                            {section.links.map((link) => (
+                                                <li key={link.href}>
+                                                    <Link href={link.href} target={link.external ? '_blank' : undefined}>
+                                                        {t(link.label)}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </AnimateHeight>
+                                </li>
+                            ))}
                         </ul>
                     </PerfectScrollbar>
                 </div>
