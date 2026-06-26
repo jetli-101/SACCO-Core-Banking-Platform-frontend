@@ -18,7 +18,7 @@ const RecoverIdBox = () => {
 
     const submitForm = (e: any) => {
         e.preventDefault();
-        router.push('/');
+        router.push('/dashboard');
     };
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 

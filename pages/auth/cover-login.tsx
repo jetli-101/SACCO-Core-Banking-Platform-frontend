@@ -24,7 +24,7 @@ const LoginCover = () => {
 
     const submitForm = (e: any) => {
         e.preventDefault();
-        router.push('/');
+        router.push('/dashboard');
     };
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
@@ -199,7 +199,7 @@ const LoginCover = () => {
                                 </Link>
                             </div>
                         </div>
-                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()}.VRISTO All Rights Reserved.</p>
+                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()} SmartSurf Sacco. All Rights Reserved.</p>
                     </div>
                 </div>
             </div>

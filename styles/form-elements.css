@@ -32,7 +32,7 @@ input[type='range']::-webkit-slider-thumb {
     height: 16px;
     width: 16px;
     border-radius: 50%;
-    background: #4361ee;
+    background: #f97316;
     margin-top: -4px;
 }
 
@@ -49,7 +49,7 @@ input[type='range']:focus {
 }
 
 input[type='range']:active::-webkit-slider-thumb {
-    background: #4361eec2;
+    background: #f97316c2;
     cursor: pointer;
 }
 
@@ -60,7 +60,7 @@ input[type='range']:active::-webkit-slider-thumb {
 
 /* noUI slider */
 .noUi-connect {
-    background-color: #4361ee !important;
+    background-color: #f97316 !important;
 }
 .noUi-target {
     @apply !h-2 !shadow-none dark:border-[#17263c] dark:bg-[#121e32] dark:text-white-dark;
