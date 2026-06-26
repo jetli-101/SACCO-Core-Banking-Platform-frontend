@@ -208,7 +208,7 @@ const RegisterCover = () => {
                                 </Link>
                             </div>
                         </div>
-                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()} SmartSurf Sacco. All Rights Reserved.</p>
+                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()} SmoothSurf Sacco. All Rights Reserved.</p>
                     </div>
                 </div>
             </div>
