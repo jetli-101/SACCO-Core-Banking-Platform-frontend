@@ -7,7 +7,7 @@ const LandingPage: NextPageWithLayout = () => {
     return (
         <>
             <Head>
-                <title>SmartSurf Sacco — Cloud Core Banking for Kenyan SACCOs</title>
+                <title>SmoothSurf Sacco — Cloud Core Banking for Kenyan SACCOs</title>
             </Head>
             <Home />
         </>

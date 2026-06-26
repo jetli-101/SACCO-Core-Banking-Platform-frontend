@@ -23,7 +23,7 @@ const Hero = () => {
                         </span>
                     </h1>
                     <p className="mt-6 max-w-lg text-lg text-white-dark">
-                        SmartSurf Sacco is the cloud banking platform built for Kenyan SACCOs — give your members the real bank experience they deserve, with the compliance and control your board demands.
+                        SmoothSurf Sacco is the cloud banking platform built for Kenyan SACCOs — give your members the real bank experience they deserve, with the compliance and control your board demands.
                     </p>
                     <div className="mt-8 flex flex-wrap items-center gap-4">
                         <Button href="#book-demo" size="lg">

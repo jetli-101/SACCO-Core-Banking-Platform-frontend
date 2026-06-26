@@ -30,7 +30,7 @@ const Footer = () => {
                         </li>
                         <li className="flex items-center gap-2">
                             <IconMail className="h-4 w-4 shrink-0" />
-                            hello@smartsurfsacco.co.ke
+                            hello@smoothsurfsacco.co.ke
                         </li>
                         <li className="flex items-center gap-2">
                             <IconPhone className="h-4 w-4 shrink-0" />
@@ -65,7 +65,7 @@ const Footer = () => {
                 </div>
             </div>
 
-            <div className="container mx-auto mt-10 border-t border-white/10 px-5 pt-6 text-center text-xs">© {new Date().getFullYear()} SmartSurf Sacco. All rights reserved.</div>
+            <div className="container mx-auto mt-10 border-t border-white/10 px-5 pt-6 text-center text-xs">© {new Date().getFullYear()} SmoothSurf Sacco. All rights reserved.</div>
         </footer>
     );
 };

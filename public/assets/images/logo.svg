@@ -1,10 +1,10 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#smartsurf-gradient)" />
+    <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#smoothsurf-gradient)" />
     <circle cx="36" cy="13" r="4" fill="white" fill-opacity="0.9" />
     <path d="M8 33 C12 25 18 25 23 33 C28 41 34 41 40 33" stroke="white" stroke-opacity="0.55" stroke-width="3.5" stroke-linecap="round" fill="none" />
     <path d="M8 25 C12 17 18 17 23 25 C28 33 34 33 40 25" stroke="white" stroke-width="4" stroke-linecap="round" fill="none" />
     <defs>
-        <linearGradient id="smartsurf-gradient" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+        <linearGradient id="smoothsurf-gradient" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#fb923c" />
             <stop offset="1" stop-color="#c2410c" />
         </linearGradient>

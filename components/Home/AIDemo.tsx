@@ -37,7 +37,7 @@ const AIDemo = () => {
                     </div>
 
                     <div className="pt-5">
-                        {stage === 'idle' && <p className="text-center text-sm text-white-dark">Click "Run AI Assessment" to see the output.</p>}
+                        {stage === 'idle' && <p className="text-center text-sm text-white-dark">Click “Run AI Assessment” to see the output.</p>}
 
                         {stage === 'thinking' && (
                             <div className="flex flex-col items-center gap-3 py-6">
