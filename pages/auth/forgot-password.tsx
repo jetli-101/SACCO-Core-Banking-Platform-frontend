@@ -33,8 +33,8 @@ const ForgotPassword = () => {
 
             <div className="relative max-h-full w-full max-w-[420px] overflow-y-auto rounded-2xl bg-white/95 p-5 shadow-2xl backdrop-blur-lg dark:bg-black/80 sm:p-8">
                 <div className="flex flex-col items-center">
-                    <span className="grid h-12 w-12 shrink-0 place-content-center overflow-hidden rounded-full bg-primary-light dark:bg-primary/20 sm:h-16 sm:w-16">
-                        <img src="/assets/images/logo.svg" alt="SmoothSurf Sacco" className="h-9 w-9 sm:h-12 sm:w-12" />
+                    <span className="inline-flex shrink-0 items-center rounded-md bg-white p-1.5 shadow-sm sm:p-2">
+                        <img src="/assets/images/smoothsurf-logo.png" alt="SmoothSurf IT Consulting" className="h-9 w-auto sm:h-11" />
                     </span>
                     <h1 className="mt-4 text-2xl font-extrabold text-primary">Forgot your password?</h1>
                     <p className="mt-2 text-center text-sm text-white-dark">Enter your email and we’ll send you a verification code to reset it</p>

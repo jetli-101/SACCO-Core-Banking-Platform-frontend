@@ -1,16 +1,63 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { apiPost, AUTH_ENDPOINTS } from '../../../urlhelper';
 
+// Matches UserResponse from the backend's AuthController/UserController exactly.
 export interface AuthUser {
     id: string;
-    name: string;
+    saccoId?: string;
+    saccoName?: string;
+    username: string;
     email: string;
-    role?: string;
+    phone?: string;
+    roles: string[];
+    status?: string;
+    lastLoginAt?: string;
+    createdAt?: string;
 }
 
+// Matches AuthResponse from AuthController (login/refresh).
 interface AuthResponse {
-    user: AuthUser;
     accessToken: string;
+    refreshToken: string;
+    tokenType: string;
+    user: AuthUser;
+}
+
+// Every AuthController method wraps its payload in this envelope.
+interface BackendEnvelope<T> {
+    success: boolean;
+    message: string;
+    data: T;
+}
+
+export interface NextOfKin {
+    name: string;
+    relationship: string;
+    phone: string;
+    idNumber: string;
+    address: string;
+}
+
+export interface RegisterPayload {
+    saccoCode: string;
+    email: string;
+    phone: string;
+    password: string;
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    nationalId: string;
+    dateOfBirth: string;
+    gender: 'MALE' | 'FEMALE' | 'OTHER';
+    occupation?: string;
+    kraPin?: string;
+    employer?: string;
+    county?: string;
+    constituency?: string;
+    ward?: string;
+    postalAddress?: string;
+    physicalAddress?: string;
+    nextOfKin: NextOfKin;
 }
 
 interface AuthState {
@@ -31,85 +78,57 @@ const initialState: AuthState = {
     pendingVerificationEmail: null,
 };
 
-const persistSession = (accessToken: string, user: AuthUser) => {
+const persistSession = (accessToken: string, refreshToken: string, user: AuthUser) => {
     localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('authUser', JSON.stringify(user));
 };
 
 const clearSession = () => {
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('authUser');
 };
 
-// No backend exists yet. With NEXT_PUBLIC_USE_FAKE_AUTH=true, every auth thunk below
-// resolves locally instead of calling the API, so the login/register/OTP flow is
-// fully testable end to end. Delete USE_FAKE_AUTH and the `if` branches below once
-// the real backend is wired up — the apiPost calls already match the intended contract.
-const USE_FAKE_AUTH = process.env.NEXT_PUBLIC_USE_FAKE_AUTH === 'true';
-const fakeDelay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
-const fakeUserFromEmail = (email: string): AuthUser => ({ id: 'fake-user', name: email.split('@')[0] || 'Demo User', email, role: 'member' });
-
 export const loginUser = createAsyncThunk('auth/login', async (credentials: { email: string; password: string }) => {
-    if (USE_FAKE_AUTH) {
-        await fakeDelay();
-        const response: AuthResponse = { user: fakeUserFromEmail(credentials.email), accessToken: 'fake-dev-token' };
-        persistSession(response.accessToken, response.user);
-        return response;
-    }
-    const response = await apiPost<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
-    persistSession(response.accessToken, response.user);
-    return response;
+    const envelope = await apiPost<BackendEnvelope<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, credentials);
+    persistSession(envelope.data.accessToken, envelope.data.refreshToken, envelope.data.user);
+    return envelope.data;
 });
 
-export const registerUser = createAsyncThunk('auth/register', async (payload: { name: string; email: string; password: string }) => {
-    if (USE_FAKE_AUTH) {
-        await fakeDelay();
-        return { email: payload.email };
-    }
-    await apiPost(AUTH_ENDPOINTS.REGISTER, payload);
-    return { email: payload.email };
+export const registerUser = createAsyncThunk('auth/register', async (payload: RegisterPayload) => {
+    const envelope = await apiPost<BackendEnvelope<{ userId: string; memberId: string; email: string; status: string }>>(AUTH_ENDPOINTS.REGISTER, payload);
+    return envelope.data;
 });
 
+// `purpose` only ever drives client-side UI branching now — the real backend's
+// verify-otp/send-otp endpoints always operate on a REGISTRATION-purpose code, there is
+// no password-reset OTP endpoint yet, so the 'reset' branch hits the same endpoint with
+// its old payload shape rather than a real endpoint that doesn't exist.
 export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (payload: { email: string; code: string; purpose: 'register' | 'reset' }) => {
-    if (USE_FAKE_AUTH) {
-        await fakeDelay();
-        if (payload.purpose === 'register') {
-            const response: AuthResponse = { user: fakeUserFromEmail(payload.email), accessToken: 'fake-dev-token' };
-            persistSession(response.accessToken, response.user);
-            return response;
-        }
+    if (payload.purpose === 'register') {
+        await apiPost<BackendEnvelope<null>>(AUTH_ENDPOINTS.VERIFY_OTP, { email: payload.email, otp: payload.code });
         return {};
     }
-    const response = await apiPost<Partial<AuthResponse>>(AUTH_ENDPOINTS.VERIFY_OTP, payload);
-    if (response.accessToken && response.user) {
-        persistSession(response.accessToken, response.user);
-    }
-    return response;
+    await apiPost(AUTH_ENDPOINTS.VERIFY_OTP, payload);
+    return {};
 });
 
 export const resendOtp = createAsyncThunk('auth/resendOtp', async (payload: { email: string; purpose: 'register' | 'reset' }) => {
-    if (USE_FAKE_AUTH) {
-        await fakeDelay();
-        return payload.email;
+    if (payload.purpose === 'register') {
+        await apiPost(AUTH_ENDPOINTS.SEND_OTP, { email: payload.email });
+    } else {
+        await apiPost(AUTH_ENDPOINTS.RESEND_OTP, payload);
     }
-    await apiPost(AUTH_ENDPOINTS.RESEND_OTP, payload);
     return payload.email;
 });
 
 export const forgotPassword = createAsyncThunk('auth/forgotPassword', async (payload: { email: string }) => {
-    if (USE_FAKE_AUTH) {
-        await fakeDelay();
-        return payload.email;
-    }
     await apiPost(AUTH_ENDPOINTS.FORGOT_PASSWORD, payload);
     return payload.email;
 });
 
 export const resetPassword = createAsyncThunk('auth/resetPassword', async (payload: { email: string; code: string; password: string }) => {
-    if (USE_FAKE_AUTH) {
-        await fakeDelay();
-        return payload.email;
-    }
     await apiPost(AUTH_ENDPOINTS.RESET_PASSWORD, payload);
     return payload.email;
 });
@@ -169,13 +188,8 @@ const authSlice = createSlice({
                 state.loading = true;
                 state.error = null;
             })
-            .addCase(verifyOtp.fulfilled, (state, action) => {
+            .addCase(verifyOtp.fulfilled, (state) => {
                 state.loading = false;
-                if (action.payload.accessToken && action.payload.user) {
-                    state.user = action.payload.user;
-                    state.accessToken = action.payload.accessToken;
-                    state.isAuthenticated = true;
-                }
                 state.pendingVerificationEmail = null;
             })
             .addCase(verifyOtp.rejected, (state, action) => {

@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import BlankLayout from '@/components/Layouts/BlankLayout';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
 import Alert from '@/components/ui/Alert';
 import IconEye from '@/components/Icon/IconEye';
+import IconMail from '@/components/Icon/IconMail';
+import IconLockDots from '@/components/Icon/IconLockDots';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loginUser, clearAuthError } from '@/store/slices/auth/authSlice';
 
@@ -13,10 +14,12 @@ const Login = () => {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const { loading, error } = useAppSelector((state) => state.auth);
+    const justVerified = router.query.verified === '1';
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
 
     const submitForm = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -31,72 +34,109 @@ const Login = () => {
     };
 
     return (
-        <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[#0e1726] px-4 py-3">
-            <img src="/assets/images/auth/bg-gradient.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
-            <img src="/assets/images/auth/map.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-10" />
+        <div className="flex min-h-screen flex-col lg:flex-row">
+            <div className="relative hidden w-full flex-col items-center justify-center bg-primary px-10 py-16 text-center text-white lg:flex lg:w-1/2">
+                <span className="inline-flex items-center rounded-md bg-white p-2">
+                    <img src="/assets/images/smoothsurf-logo.png" alt="SmoothSurf IT Consulting" className="h-16 w-auto" />
+                </span>
+                <h2 className="mt-10 text-3xl font-bold">SmoothSurf Sacco</h2>
+                <p className="mt-3 max-w-sm text-white/80">Member &amp; Staff Portal</p>
+            </div>
 
-            <div className="relative max-h-full w-full max-w-[420px] overflow-y-auto rounded-2xl bg-white/95 p-5 shadow-2xl backdrop-blur-lg dark:bg-black/80 sm:p-8">
-                <div className="flex flex-col items-center">
-                    <span className="grid h-12 w-12 shrink-0 place-content-center overflow-hidden rounded-full bg-primary-light dark:bg-primary/20 sm:h-16 sm:w-16">
-                        <img src="/assets/images/logo.svg" alt="SmoothSurf Sacco" className="h-9 w-9 sm:h-12 sm:w-12" />
+            <div className="flex w-full flex-1 flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-20">
+                <div className="mx-auto w-full max-w-sm">
+                    <span className="mb-8 inline-flex items-center rounded-md bg-white p-1.5 shadow-sm lg:hidden">
+                        <img src="/assets/images/smoothsurf-logo.png" alt="SmoothSurf IT Consulting" className="h-9 w-auto" />
                     </span>
-                    <h1 className="mt-4 text-2xl font-extrabold text-primary">SmoothSurf Sacco Login</h1>
-                    <p className="mt-2 text-center text-sm text-white-dark">Access your SmoothSurf Sacco member or staff account</p>
-                </div>
 
-                {error && (
-                    <div className="mt-6">
-                        <Alert variant="danger">{error}</Alert>
-                    </div>
-                )}
+                    <h1 className="text-3xl font-extrabold text-black dark:text-white-light">SIGN IN</h1>
+                    <p className="mt-2 text-white-dark">Enter your email and password to login</p>
 
-                <form className="mt-4 space-y-3 sm:mt-6 sm:space-y-4" onSubmit={submitForm}>
-                    <Input id="email" label="Email" type="email" placeholder="name@smoothsurfsacco.co.ke" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    {justVerified && !error && (
+                        <div className="mt-6">
+                            <Alert variant="success">Email verified — you can now log in.</Alert>
+                        </div>
+                    )}
 
-                    <Input
-                        id="password"
-                        label="Password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        rightElement={
-                            <Button
-                                variant="ghost"
-                                onClick={() => setShowPassword((show) => !show)}
-                                className={showPassword ? 'text-primary' : 'text-white-dark'}
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                            >
-                                <IconEye className="h-5 w-5" />
-                            </Button>
-                        }
-                    />
+                    {error && (
+                        <div className="mt-6">
+                            <Alert variant="danger">{error}</Alert>
+                        </div>
+                    )}
 
-                    <Link href="/auth/forgot-password" className="inline-block text-sm font-semibold text-primary hover:underline">
-                        Forgot password?
-                    </Link>
+                    <form className="mt-8 space-y-5" onSubmit={submitForm}>
+                        <div>
+                            <label htmlFor="email" className="mb-1.5 block text-sm font-semibold">
+                                Email
+                            </label>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white-dark">
+                                    <IconMail className="h-5 w-5" />
+                                </span>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    className="form-input bg-primary-light pl-10 dark:bg-primary/10"
+                                    placeholder="name@smoothsurfsacco.co.ke"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
 
-                    <Button type="submit" size="lg" fullWidth disabled={loading}>
-                        {loading ? 'Logging in…' : 'Login'}
-                    </Button>
-                </form>
+                        <div>
+                            <div className="mb-1.5 flex items-center justify-between">
+                                <label htmlFor="password" className="block text-sm font-semibold">
+                                    Password
+                                </label>
+                                <Link href="/auth/forgot-password" className="text-sm font-semibold text-primary hover:underline">
+                                    Forgot password?
+                                </Link>
+                            </div>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white-dark">
+                                    <IconLockDots className="h-5 w-5" />
+                                </span>
+                                <input
+                                    id="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    className="form-input bg-primary-light pl-10 pr-10 dark:bg-primary/10"
+                                    placeholder="Enter your password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setShowPassword((show) => !show)}
+                                    className={`absolute inset-y-0 right-0 pr-3 ${showPassword ? 'text-primary' : 'text-white-dark'}`}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    <IconEye className="h-5 w-5" />
+                                </Button>
+                            </div>
+                        </div>
 
-                <div className="mt-4 text-center text-sm text-white-dark sm:mt-6">
-                    <p>
-                        Don’t have an account?{' '}
+                        <label htmlFor="rememberMe" className="flex items-center text-white-dark">
+                            <input id="rememberMe" type="checkbox" className="form-checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+                            <span className="ltr:ml-2 rtl:mr-2">Remember me</span>
+                        </label>
+
+                        <Button type="submit" size="lg" fullWidth disabled={loading}>
+                            {loading ? 'SIGNING IN…' : 'SIGN IN'}
+                        </Button>
+                    </form>
+
+                    <p className="mt-6 text-center text-white-dark">
+                        Don&apos;t have an account?{' '}
                         <Link href="/auth/register" className="font-semibold text-primary hover:underline">
-                            Create one
+                            SIGN UP
                         </Link>
                     </p>
-                    <p className="mt-3">Need help? Contact SmoothSurf Support</p>
-                    <p>
-                        Access{' '}
-                        <Link href="#" className="font-semibold text-primary hover:underline">
-                            SmoothSurf Helpdesk
-                        </Link>
-                    </p>
-                    <p className="mt-4 text-xs">© {new Date().getFullYear()} SmoothSurf Sacco. All rights reserved.</p>
+
+                    <p className="mt-10 text-center text-xs text-white-dark">© {new Date().getFullYear()} @SmoothSurf Sacco.</p>
                 </div>
             </div>
         </div>
