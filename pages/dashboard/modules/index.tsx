@@ -19,10 +19,9 @@ import Input from '@/components/ui/Input';
 import IconPicker from '@/components/ui/IconPicker';
 import Modal from '@/components/ui/Modal';
 import Alert from '@/components/ui/Alert';
+import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconRefresh from '@/components/Icon/IconRefresh';
-import IconEdit from '@/components/Icon/IconEdit';
-import IconTrash from '@/components/Icon/IconTrash';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 import IconLayoutGrid from '@/components/Icon/IconLayoutGrid';
 import IconBox from '@/components/Icon/IconBox';
@@ -35,6 +34,7 @@ const ModulesPage = () => {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ModuleNode | null>(null);
+    const [viewOnly, setViewOnly] = useState(false);
     const [form, setForm] = useState<ModuleRegisterPayload>(emptyForm);
 
     useEffect(() => {
@@ -87,6 +87,7 @@ const ModulesPage = () => {
 
     const openCreate = () => {
         setEditing(null);
+        setViewOnly(false);
         setForm({ ...emptyForm, moduleTypeId: moduleTypes[0]?.id || '' });
         dispatch(clearModulesError());
         setModalOpen(true);
@@ -94,6 +95,24 @@ const ModulesPage = () => {
 
     const openEdit = (module: ModuleNode) => {
         setEditing(module);
+        setViewOnly(false);
+        setForm({
+            name: module.name,
+            textId: module.textId,
+            description: module.description || '',
+            urlPath: module.urlPath || '',
+            icon: module.icon || '',
+            orderNo: module.orderNo,
+            moduleTypeId: module.moduleTypeId,
+            parentId: module.parentId,
+        });
+        dispatch(clearModulesError());
+        setModalOpen(true);
+    };
+
+    const openView = (module: ModuleNode) => {
+        setEditing(module);
+        setViewOnly(true);
         setForm({
             name: module.name,
             textId: module.textId,
@@ -196,14 +215,7 @@ const ModulesPage = () => {
                         {
                             header: 'Actions',
                             accessor: (row: ModuleNode) => (
-                                <div className="flex items-center gap-2">
-                                    <button type="button" className="hover:text-primary" onClick={() => openEdit(row)} aria-label={`Edit ${row.name}`}>
-                                        <IconEdit className="h-4.5 w-4.5" />
-                                    </button>
-                                    <button type="button" className="hover:text-danger" onClick={() => handleDelete(row)} aria-label={`Delete ${row.name}`}>
-                                        <IconTrash className="h-4.5 w-4.5" />
-                                    </button>
-                                </div>
+                                <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => handleDelete(row)} label={`Actions for ${row.name}`} />
                             ),
                         },
                         {
@@ -243,10 +255,18 @@ const ModulesPage = () => {
                 />
             </div>
 
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Module' : 'New Module'} size="lg">
+            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={viewOnly ? 'View Module' : editing ? 'Edit Module' : 'New Module'} size="lg">
                 <form onSubmit={submitForm} className="grid gap-4 sm:grid-cols-2">
-                    <Input id="name" label="Module Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required />
-                    <Input id="textId" label="Text ID *" value={form.textId} onChange={(e) => setForm((prev) => ({ ...prev, textId: e.target.value }))} placeholder="e.g. PENDING_APPROVALS" required />
+                    <Input id="name" label="Module Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required disabled={viewOnly} />
+                    <Input
+                        id="textId"
+                        label="Text ID *"
+                        value={form.textId}
+                        onChange={(e) => setForm((prev) => ({ ...prev, textId: e.target.value }))}
+                        placeholder="e.g. PENDING_APPROVALS"
+                        required
+                        disabled={viewOnly}
+                    />
 
                     <div className="w-full">
                         <label htmlFor="moduleTypeId" className="mb-1.5 block text-sm font-semibold">
@@ -258,6 +278,7 @@ const ModulesPage = () => {
                             value={form.moduleTypeId}
                             onChange={(e) => setForm((prev) => ({ ...prev, moduleTypeId: e.target.value }))}
                             required
+                            disabled={viewOnly}
                         >
                             <option value="">Select…</option>
                             {moduleTypes.map((type) => (
@@ -272,7 +293,13 @@ const ModulesPage = () => {
                         <label htmlFor="parentId" className="mb-1.5 block text-sm font-semibold">
                             Parent Module
                         </label>
-                        <select id="parentId" className="form-select" value={form.parentId || ''} onChange={(e) => setForm((prev) => ({ ...prev, parentId: e.target.value || undefined }))}>
+                        <select
+                            id="parentId"
+                            className="form-select"
+                            value={form.parentId || ''}
+                            onChange={(e) => setForm((prev) => ({ ...prev, parentId: e.target.value || undefined }))}
+                            disabled={viewOnly}
+                        >
                             <option value="">None (top-level)</option>
                             {hierarchy
                                 .filter((entry) => entry.module.id !== editing?.id)
@@ -285,26 +312,48 @@ const ModulesPage = () => {
                         </select>
                     </div>
 
-                    <Input id="urlPath" label="Module Url" value={form.urlPath} onChange={(e) => setForm((prev) => ({ ...prev, urlPath: e.target.value }))} placeholder="/dashboard/members/pending" />
-                    <IconPicker id="icon" label="Icon" value={form.icon || ''} onChange={(iconName) => setForm((prev) => ({ ...prev, icon: iconName }))} />
+                    <Input
+                        id="urlPath"
+                        label="Module Url"
+                        value={form.urlPath}
+                        onChange={(e) => setForm((prev) => ({ ...prev, urlPath: e.target.value }))}
+                        placeholder="/dashboard/members/pending"
+                        disabled={viewOnly}
+                    />
+                    <IconPicker id="icon" label="Icon" value={form.icon || ''} onChange={(iconName) => setForm((prev) => ({ ...prev, icon: iconName }))} disabled={viewOnly} />
                     <Input
                         id="orderNo"
                         label="Order No"
                         type="number"
                         value={form.orderNo}
                         onChange={(e) => setForm((prev) => ({ ...prev, orderNo: Number(e.target.value) }))}
+                        disabled={viewOnly}
                     />
                     <div className="sm:col-span-2">
-                        <Input id="description" label="Description" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
+                        <Input
+                            id="description"
+                            label="Description"
+                            value={form.description}
+                            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                            disabled={viewOnly}
+                        />
                     </div>
 
                     <div className="flex items-center justify-end gap-2 pt-2 sm:col-span-2">
-                        <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={saving}>
-                            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
-                        </Button>
+                        {viewOnly ? (
+                            <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                Close
+                            </Button>
+                        ) : (
+                            <>
+                                <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={saving}>
+                                    {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </form>
             </Modal>

@@ -9,10 +9,9 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Alert from '@/components/ui/Alert';
+import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconRefresh from '@/components/Icon/IconRefresh';
-import IconEdit from '@/components/Icon/IconEdit';
-import IconTrash from '@/components/Icon/IconTrash';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 
 const emptyForm: ModuleTypePayload = { name: '', textId: '', orderNo: 0, description: '' };
@@ -23,6 +22,7 @@ const ModuleTypesPage = () => {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ModuleType | null>(null);
+    const [viewOnly, setViewOnly] = useState(false);
     const [form, setForm] = useState<ModuleTypePayload>(emptyForm);
 
     useEffect(() => {
@@ -31,6 +31,7 @@ const ModuleTypesPage = () => {
 
     const openCreate = () => {
         setEditing(null);
+        setViewOnly(false);
         setForm(emptyForm);
         dispatch(clearModulesError());
         setModalOpen(true);
@@ -38,6 +39,15 @@ const ModuleTypesPage = () => {
 
     const openEdit = (type: ModuleType) => {
         setEditing(type);
+        setViewOnly(false);
+        setForm({ name: type.name, textId: type.textId, orderNo: type.orderNo, description: type.description || '' });
+        dispatch(clearModulesError());
+        setModalOpen(true);
+    };
+
+    const openView = (type: ModuleType) => {
+        setEditing(type);
+        setViewOnly(true);
         setForm({ name: type.name, textId: type.textId, orderNo: type.orderNo, description: type.description || '' });
         dispatch(clearModulesError());
         setModalOpen(true);
@@ -116,14 +126,7 @@ const ModuleTypesPage = () => {
                         {
                             header: 'Actions',
                             accessor: (row: ModuleType) => (
-                                <div className="flex items-center gap-2">
-                                    <button type="button" className="hover:text-primary" onClick={() => openEdit(row)} aria-label={`Edit ${row.name}`}>
-                                        <IconEdit className="h-4.5 w-4.5" />
-                                    </button>
-                                    <button type="button" className="hover:text-danger" onClick={() => handleDelete(row)} aria-label={`Delete ${row.name}`}>
-                                        <IconTrash className="h-4.5 w-4.5" />
-                                    </button>
-                                </div>
+                                <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => handleDelete(row)} label={`Actions for ${row.name}`} />
                             ),
                         },
                         { header: 'Name', accessor: 'name' },
@@ -146,26 +149,49 @@ const ModuleTypesPage = () => {
                 />
             </div>
 
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Module Type' : 'New Module Type'}>
+            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={viewOnly ? 'View Module Type' : editing ? 'Edit Module Type' : 'New Module Type'}>
                 <form onSubmit={submitForm} className="space-y-4">
-                    <Input id="name" label="Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required />
-                    <Input id="textId" label="Text ID *" value={form.textId} onChange={(e) => setForm((prev) => ({ ...prev, textId: e.target.value }))} placeholder="e.g. MEMBER_MGMT" required />
+                    <Input id="name" label="Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required disabled={viewOnly} />
+                    <Input
+                        id="textId"
+                        label="Text ID *"
+                        value={form.textId}
+                        onChange={(e) => setForm((prev) => ({ ...prev, textId: e.target.value }))}
+                        placeholder="e.g. MEMBER_MGMT"
+                        required
+                        disabled={viewOnly}
+                    />
                     <Input
                         id="orderNo"
                         label="Order No"
                         type="number"
                         value={form.orderNo}
                         onChange={(e) => setForm((prev) => ({ ...prev, orderNo: Number(e.target.value) }))}
+                        disabled={viewOnly}
                     />
-                    <Input id="description" label="Description" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
+                    <Input
+                        id="description"
+                        label="Description"
+                        value={form.description}
+                        onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                        disabled={viewOnly}
+                    />
 
                     <div className="flex items-center justify-end gap-2 pt-2">
-                        <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={saving}>
-                            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
-                        </Button>
+                        {viewOnly ? (
+                            <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                Close
+                            </Button>
+                        ) : (
+                            <>
+                                <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={saving}>
+                                    {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </form>
             </Modal>
