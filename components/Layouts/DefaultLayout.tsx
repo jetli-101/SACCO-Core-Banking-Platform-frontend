@@ -6,7 +6,6 @@ import App from '../../App';
 import Footer from './Footer';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import Setting from './Setting';
 import Portals from '../../components/Portals';
 import { useRouter } from 'next/router';
 
@@ -97,14 +96,15 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
                         </button>
                     )}
                 </div>
-                {/* BEGIN APP SETTING LAUNCHER */}
-                <Setting />
-                {/* END APP SETTING LAUNCHER */}
                 <div className={`${themeConfig.navbar} main-container min-h-screen text-black dark:text-white-dark`}>
                     {/* BEGIN SIDEBAR */}
                     <Sidebar />
                     {/* END SIDEBAR */}
-                    <div className="main-content flex flex-col min-h-screen">
+                    <div
+                        className={`main-content flex min-h-screen flex-col transition-all duration-300 ${
+                            themeConfig.sidebarCollapsed ? 'lg:ltr:!ml-[80px] lg:rtl:!mr-[80px]' : ''
+                        }`}
+                    >
                         {/* BEGIN TOP NAVBAR */}
                         <Header />
                         {/* END TOP NAVBAR */}

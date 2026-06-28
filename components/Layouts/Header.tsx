@@ -3,72 +3,21 @@ import { useDispatch, useSelector } from 'react-redux';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { IRootState } from '../../store';
-import { toggleLocale, toggleTheme, toggleSidebar, toggleRTL } from '../../store/themeConfigSlice';
-import { useTranslation } from 'react-i18next';
+import { toggleSidebar } from '../../store/themeConfigSlice';
+import { logout } from '../../store/slices/auth/authSlice';
 import Dropdown from '../Dropdown';
 import IconMenu from '@/components/Icon/IconMenu';
-import IconSearch from '@/components/Icon/IconSearch';
 import IconXCircle from '@/components/Icon/IconXCircle';
-import IconSun from '@/components/Icon/IconSun';
-import IconMoon from '@/components/Icon/IconMoon';
-import IconLaptop from '@/components/Icon/IconLaptop';
-import IconArrowLeft from '@/components/Icon/IconArrowLeft';
 import IconInfoCircle from '@/components/Icon/IconInfoCircle';
 import IconBellBing from '@/components/Icon/IconBellBing';
-import IconUser from '@/components/Icon/IconUser';
-import IconLockDots from '@/components/Icon/IconLockDots';
 import IconLogout from '@/components/Icon/IconLogout';
-import IconMenuDashboard from '@/components/Icon/Menu/IconMenuDashboard';
-import IconCaretDown from '@/components/Icon/IconCaretDown';
-import IconMenuUsers from '@/components/Icon/Menu/IconMenuUsers';
-import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 
 const Header = () => {
     const router = useRouter();
 
-    useEffect(() => {
-        const selector = document.querySelector('ul.horizontal-menu a[href="' + window.location.pathname + '"]');
-        if (selector) {
-            const all: any = document.querySelectorAll('ul.horizontal-menu .nav-link.active');
-            for (let i = 0; i < all.length; i++) {
-                all[0]?.classList.remove('active');
-            }
-
-            let allLinks = document.querySelectorAll('ul.horizontal-menu a.active');
-            for (let i = 0; i < allLinks.length; i++) {
-                const element = allLinks[i];
-                element?.classList.remove('active');
-            }
-            selector?.classList.add('active');
-
-            const ul: any = selector.closest('ul.sub-menu');
-            if (ul) {
-                let ele: any = ul.closest('li.menu').querySelectorAll('.nav-link');
-                if (ele) {
-                    ele = ele[0];
-                    setTimeout(() => {
-                        ele?.classList.add('active');
-                    });
-                }
-            }
-        }
-    }, [router.pathname]);
-
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
-    const setLocale = (flag: string) => {
-        setFlag(flag);
-        if (flag.toLowerCase() === 'ae') {
-            dispatch(toggleRTL('rtl'));
-        } else {
-            dispatch(toggleRTL('ltr'));
-        }
-    };
-    const [flag, setFlag] = useState('');
-    useEffect(() => {
-        setLocale(localStorage.getItem('i18nextLng') || themeConfig.locale);
-    }, []);
     const dispatch = useDispatch();
 
     const [notifications, setNotifications] = useState([
@@ -96,18 +45,15 @@ const Header = () => {
         setNotifications(notifications.filter((user) => user.id !== value));
     };
 
-    const [search, setSearch] = useState(false);
-
-    const { t, i18n } = useTranslation();
-
     return (
         <header className={`z-40 ${themeConfig.semidark && themeConfig.menu === 'horizontal' ? 'dark' : ''}`}>
             <div className="shadow-sm">
                 <div className="relative flex w-full items-center bg-white px-5 py-2.5 dark:bg-black">
                     <div className="horizontal-logo flex items-center justify-between ltr:mr-2 rtl:ml-2 lg:hidden">
                         <Link href="/dashboard" className="main-logo flex shrink-0 items-center">
-                            <img className="inline w-8 ltr:-ml-1 rtl:-mr-1" src="/assets/images/logo.svg" alt="logo" />
-                            <span className="hidden align-middle text-2xl  font-semibold  transition-all duration-300 ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light md:inline">SmoothSurf</span>
+                            <span className="inline-flex items-center rounded-md bg-white p-1 ltr:-ml-1 rtl:-mr-1">
+                                <img className="h-7 w-auto" src="/assets/images/smoothsurf-logo.png" alt="SmoothSurf IT Consulting" />
+                            </span>
                         </Link>
                         <button
                             type="button"
@@ -118,100 +64,7 @@ const Header = () => {
                         </button>
                     </div>
 
-                    <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
-                        <div className="sm:ltr:mr-auto sm:rtl:ml-auto">
-                            <form
-                                className={`${search && '!block'} absolute inset-x-0 top-1/2 z-10 mx-4 hidden -translate-y-1/2 sm:relative sm:top-0 sm:mx-0 sm:block sm:translate-y-0`}
-                                onSubmit={() => setSearch(false)}
-                            >
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        className="peer form-input bg-gray-100 placeholder:tracking-widest ltr:pl-9 ltr:pr-9 rtl:pl-9 rtl:pr-9 sm:bg-transparent ltr:sm:pr-4 rtl:sm:pl-4"
-                                        placeholder="Search..."
-                                    />
-                                    <button type="button" className="absolute inset-0 h-9 w-9 appearance-none peer-focus:text-primary ltr:right-auto rtl:left-auto">
-                                        <IconSearch className="mx-auto" />
-                                    </button>
-                                    <button type="button" className="absolute top-1/2 block -translate-y-1/2 hover:opacity-80 ltr:right-2 rtl:left-2 sm:hidden" onClick={() => setSearch(false)}>
-                                        <IconXCircle />
-                                    </button>
-                                </div>
-                            </form>
-                            <button
-                                type="button"
-                                onClick={() => setSearch(!search)}
-                                className="search_btn rounded-full bg-white-light/40 p-2 hover:bg-white-light/90 dark:bg-dark/40 dark:hover:bg-dark/60 sm:hidden"
-                            >
-                                <IconSearch className="mx-auto h-4.5 w-4.5 dark:text-[#d0d2d6]" />
-                            </button>
-                        </div>
-                        <div>
-                            {themeConfig.theme === 'light' ? (
-                                <button
-                                    className={`${
-                                        themeConfig.theme === 'light' &&
-                                        'flex items-center rounded-full bg-white-light/40 p-2 hover:bg-white-light/90 hover:text-primary dark:bg-dark/40 dark:hover:bg-dark/60'
-                                    }`}
-                                    onClick={() => dispatch(toggleTheme('dark'))}
-                                >
-                                    <IconSun />
-                                </button>
-                            ) : (
-                                ''
-                            )}
-                            {themeConfig.theme === 'dark' && (
-                                <button
-                                    className={`${
-                                        themeConfig.theme === 'dark' &&
-                                        'flex items-center rounded-full bg-white-light/40 p-2 hover:bg-white-light/90 hover:text-primary dark:bg-dark/40 dark:hover:bg-dark/60'
-                                    }`}
-                                    onClick={() => dispatch(toggleTheme('system'))}
-                                >
-                                    <IconMoon />
-                                </button>
-                            )}
-                            {themeConfig.theme === 'system' && (
-                                <button
-                                    className={`${
-                                        themeConfig.theme === 'system' &&
-                                        'flex items-center rounded-full bg-white-light/40 p-2 hover:bg-white-light/90 hover:text-primary dark:bg-dark/40 dark:hover:bg-dark/60'
-                                    }`}
-                                    onClick={() => dispatch(toggleTheme('light'))}
-                                >
-                                    <IconLaptop />
-                                </button>
-                            )}
-                        </div>
-                        <div className="dropdown shrink-0">
-                            <Dropdown
-                                offset={[0, 8]}
-                                placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
-                                btnClassName="block p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:text-primary hover:bg-white-light/90 dark:hover:bg-dark/60"
-                                button={flag && <img className="h-5 w-5 rounded-full object-cover" src={`/assets/images/flags/${flag.toUpperCase()}.svg`} alt="flag" />}
-                            >
-                                <ul className="grid w-[280px] grid-cols-2 gap-2 !px-2 font-semibold text-dark dark:text-white-dark dark:text-white-light/90">
-                                    {themeConfig.languageList.map((item: any) => {
-                                        return (
-                                            <li key={item.code}>
-                                                <button
-                                                    type="button"
-                                                    className={`flex w-full hover:text-primary ${i18n.language === item.code ? 'bg-primary/10 text-primary' : ''}`}
-                                                    onClick={() => {
-                                                        dispatch(toggleLocale(item.code));
-                                                        i18n.changeLanguage(item.code);
-                                                        setLocale(item.code);
-                                                    }}
-                                                >
-                                                    <img src={`/assets/images/flags/${item.code.toUpperCase()}.svg`} alt="flag" className="h-5 w-5 rounded-full object-cover" />
-                                                    <span className="ltr:ml-3 rtl:mr-3">{item.name}</span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </Dropdown>
-                        </div>
+                    <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 sm:justify-end ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
                         <div className="dropdown shrink-0">
                             <Dropdown
                                 offset={[0, 8]}
@@ -308,183 +161,24 @@ const Header = () => {
                                             </div>
                                         </div>
                                     </li>
-                                    <li>
-                                        <Link href="/users/profile" className="dark:hover:text-white">
-                                            <IconUser className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                                            Profile
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/auth/boxed-lockscreen" className="dark:hover:text-white">
-                                            <IconLockDots className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                                            Lock Screen
-                                        </Link>
-                                    </li>
                                     <li className="border-t border-white-light dark:border-white-light/10">
-                                        <Link href="/auth/boxed-signin" className="!py-3 text-danger">
+                                        <button
+                                            type="button"
+                                            className="!py-3 text-danger"
+                                            onClick={() => {
+                                                dispatch(logout());
+                                                router.push('/auth/login');
+                                            }}
+                                        >
                                             <IconLogout className="h-4.5 w-4.5 shrink-0 rotate-90 ltr:mr-2 rtl:ml-2" />
                                             Sign Out
-                                        </Link>
+                                        </button>
                                     </li>
                                 </ul>
                             </Dropdown>
                         </div>
                     </div>
                 </div>
-
-                {/* horizontal menu */}
-                <ul className="horizontal-menu hidden border-t border-[#ebedf2] bg-white px-6 py-1.5 font-semibold text-black rtl:space-x-reverse dark:border-[#191e3a] dark:bg-black dark:text-white-dark lg:space-x-1.5 xl:space-x-8">
-                    <li className="menu nav-item relative">
-                        <Link href="/dashboard" className="nav-link">
-                            <div className="flex items-center">
-                                <IconMenuDashboard className="shrink-0" />
-                                <span className="px-1">{t('dashboard')}</span>
-                            </div>
-                        </Link>
-                    </li>
-                    <li className="menu nav-item relative">
-                        <button type="button" className="nav-link">
-                            <div className="flex items-center">
-                                <IconMenuUsers className="shrink-0" />
-                                <span className="px-1">{t('users')}</span>
-                            </div>
-                            <div className="right_arrow">
-                                <IconCaretDown />
-                            </div>
-                        </button>
-                        <ul className="sub-menu">
-                            <li>
-                                <Link href="/users/profile">{t('profile')}</Link>
-                            </li>
-                            <li>
-                                <Link href="/users/user-account-settings">{t('account_settings')}</Link>
-                            </li>
-                        </ul>
-                    </li>
-                    <li className="menu nav-item relative">
-                        <button type="button" className="nav-link">
-                            <div className="flex items-center">
-                                <IconMenuPages className="shrink-0" />
-                                <span className="px-1">{t('pages')}</span>
-                            </div>
-                            <div className="right_arrow">
-                                <IconCaretDown />
-                            </div>
-                        </button>
-                        <ul className="sub-menu">
-                            <li>
-                                <Link href="/pages/maintenence" target="_blank">
-                                    {t('maintenence')}
-                                </Link>
-                            </li>
-                            <li className="relative">
-                                <button type="button">
-                                    {t('error')}
-                                    <div className="-rotate-90 ltr:ml-auto rtl:mr-auto rtl:rotate-90">
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-                                <ul className="absolute top-0 z-[10] hidden min-w-[180px] rounded bg-white p-0 py-2 text-dark shadow ltr:left-[95%] rtl:right-[95%] dark:bg-[#1b2e4b] dark:text-white-dark">
-                                    <li>
-                                        <Link href="/pages/error404" target="_blank">
-                                            {t('404')}
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/pages/error500" target="_blank">
-                                            {t('500')}
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/pages/error503" target="_blank">
-                                            {t('503')}
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li className="relative">
-                                <button type="button">
-                                    {t('login')}
-                                    <div className="-rotate-90 ltr:ml-auto rtl:mr-auto rtl:rotate-90">
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-                                <ul className="absolute top-0 z-[10] hidden min-w-[180px] rounded bg-white p-0 py-2 text-dark shadow ltr:left-[95%] rtl:right-[95%] dark:bg-[#1b2e4b] dark:text-white-dark">
-                                    <li>
-                                        <Link href="/auth/cover-login" target="_blank">
-                                            {t('login_cover')}
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/auth/boxed-signin" target="_blank">
-                                            {t('login_boxed')}
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li className="relative">
-                                <button type="button">
-                                    {t('register')}
-                                    <div className="-rotate-90 ltr:ml-auto rtl:mr-auto rtl:rotate-90">
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-                                <ul className="absolute top-0 z-[10] hidden min-w-[180px] rounded bg-white p-0 py-2 text-dark shadow ltr:left-[95%] rtl:right-[95%] dark:bg-[#1b2e4b] dark:text-white-dark">
-                                    <li>
-                                        <Link href="/auth/cover-register" target="_blank">
-                                            {t('register_cover')}
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/auth/boxed-signup" target="_blank">
-                                            {t('register_boxed')}
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li className="relative">
-                                <button type="button">
-                                    {t('password_recovery')}
-                                    <div className="-rotate-90 ltr:ml-auto rtl:mr-auto rtl:rotate-90">
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-                                <ul className="absolute top-0 z-[10] hidden min-w-[180px] rounded bg-white p-0 py-2 text-dark shadow ltr:left-[95%] rtl:right-[95%] dark:bg-[#1b2e4b] dark:text-white-dark">
-                                    <li>
-                                        <Link href="/auth/cover-password-reset" target="_blank">
-                                            {t('recover_id_cover')}
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/auth/boxed-password-reset" target="_blank">
-                                            {t('recover_id_boxed')}
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li className="relative">
-                                <button type="button">
-                                    {t('lockscreen')}
-                                    <div className="-rotate-90 ltr:ml-auto rtl:mr-auto rtl:rotate-90">
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-                                <ul className="absolute top-0 z-[10] hidden min-w-[180px] rounded bg-white p-0 py-2 text-dark shadow ltr:left-[95%] rtl:right-[95%] dark:bg-[#1b2e4b] dark:text-white-dark">
-                                    <li>
-                                        <Link href="/auth/cover-lockscreen" target="_blank">
-                                            {t('unlock_cover')}
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/auth/boxed-lockscreen" target="_blank">
-                                            {t('unlock_boxed')}
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
             </div>
         </header>
     );
