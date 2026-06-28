@@ -1,27 +1,26 @@
 import PerfectScrollbar from 'react-perfect-scrollbar';
-import { useTranslation } from 'react-i18next';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import Link from 'next/link';
-import { toggleSidebar } from '../../store/themeConfigSlice';
-import AnimateHeight from 'react-animate-height';
+import { toggleSidebar, toggleSidebarCollapsed } from '../../store/themeConfigSlice';
 import { IRootState } from '../../store';
-import { useState, useEffect } from 'react';
+import { useAppDispatch } from '@/store/hooks';
+import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import IconCaretsDown from '@/components/Icon/IconCaretsDown';
+import { fetchModuleTree } from '@/store/slices/modules/modulesSlice';
+import SidebarMenuItem from './SidebarMenuItem';
 import IconMenuDashboard from '@/components/Icon/Menu/IconMenuDashboard';
-import IconCaretDown from '@/components/Icon/IconCaretDown';
-import { sidebarSections } from './sidebarNav';
+import IconCaretsDown from '@/components/Icon/IconCaretsDown';
 
 const Sidebar = () => {
     const router = useRouter();
-    const [currentMenu, setCurrentMenu] = useState<string>('');
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
-    const toggleMenu = (value: string) => {
-        setCurrentMenu((oldValue) => {
-            return oldValue === value ? '' : value;
-        });
-    };
+    const { tree, treeLoading: loading, treeError: error } = useSelector((state: IRootState) => state.modules);
+    const dispatch = useAppDispatch();
+
+    useEffect(() => {
+        dispatch(fetchModuleTree());
+    }, [dispatch]);
 
     useEffect(() => {
         const selector = document.querySelector('.sidebar ul a[href="' + window.location.pathname + '"]');
@@ -57,64 +56,82 @@ const Sidebar = () => {
         selector?.classList.add('active');
     };
 
-    const dispatch = useDispatch();
-    const { t } = useTranslation();
+    const collapsed = themeConfig.sidebarCollapsed;
+    const expandSidebar = () => dispatch(toggleSidebarCollapsed());
 
     return (
         <div className={semidark ? 'dark' : ''}>
             <nav
-                className={`sidebar fixed bottom-0 top-0 z-50 h-full min-h-screen w-[260px] shadow-[5px_0_25px_0_rgba(94,92,154,0.1)] transition-all duration-300 ${semidark ? 'text-white-dark' : ''}`}
+                className={`sidebar fixed bottom-0 top-0 z-50 h-full min-h-screen ${collapsed ? 'w-[80px]' : 'w-[260px]'} shadow-[5px_0_25px_0_rgba(94,92,154,0.1)] transition-all duration-300 ${
+                    semidark ? 'text-white-dark' : ''
+                }`}
             >
                 <div className="h-full bg-white dark:bg-black">
-                    <div className="flex items-center justify-between px-4 py-3">
-                        <Link href="/dashboard" className="main-logo flex shrink-0 items-center">
-                            <img className="ml-[5px] w-8 flex-none" src="/assets/images/logo.svg" alt="logo" />
-                            <span className="align-middle text-2xl font-semibold ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light lg:inline">SmoothSurf</span>
-                        </Link>
+                    <div className="h-1 bg-gradient-to-r from-primary to-orange-300" />
 
-                        <button
-                            type="button"
-                            className="collapse-icon flex h-8 w-8 items-center rounded-full transition duration-300 hover:bg-gray-500/10 rtl:rotate-180 dark:text-white-light dark:hover:bg-dark-light/10"
-                            onClick={() => dispatch(toggleSidebar())}
-                        >
-                            <IconCaretsDown className="m-auto rotate-90" />
-                        </button>
-                    </div>
+                    {collapsed ? (
+                        <div className="flex justify-center py-3">
+                            <button
+                                type="button"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary-light text-primary shadow-sm transition hover:bg-primary/20 dark:bg-primary/10 dark:hover:bg-primary/20"
+                                onClick={() => dispatch(toggleSidebarCollapsed())}
+                                aria-label="Expand sidebar"
+                            >
+                                <IconCaretsDown className="h-4 w-4 -rotate-90" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between px-4 py-3">
+                            <Link href="/dashboard" className="main-logo flex shrink-0 items-center">
+                                <span className="inline-flex items-center rounded-md bg-white p-1">
+                                    <img className="h-9 w-auto" src="/assets/images/smoothsurf-logo.png" alt="SmoothSurf IT Consulting" />
+                                </span>
+                            </Link>
+
+                            <button
+                                type="button"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary-light text-primary shadow-sm transition hover:bg-primary/20 dark:bg-primary/10 dark:hover:bg-primary/20"
+                                onClick={() => dispatch(toggleSidebarCollapsed())}
+                                aria-label="Collapse sidebar"
+                            >
+                                <IconCaretsDown className="h-4 w-4 rotate-90" />
+                            </button>
+                        </div>
+                    )}
+
                     <PerfectScrollbar className="relative h-[calc(100vh-80px)]">
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
                             <li className="menu nav-item">
-                                <Link href="/dashboard" className="group">
+                                <Link href="/dashboard" className={`group ${collapsed ? 'justify-center' : ''}`} title={collapsed ? 'Dashboard' : undefined}>
                                     <div className="flex items-center">
                                         <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('dashboard')}</span>
+                                        {!collapsed && <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Dashboard</span>}
                                     </div>
                                 </Link>
                             </li>
 
-                            {sidebarSections.map((section) => (
-                                <li key={section.key} className="menu nav-item">
-                                    <button type="button" className={`${currentMenu === section.key ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu(section.key)}>
-                                        <div className="flex items-center">
-                                            <section.icon className="shrink-0 group-hover:!text-primary" />
-                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t(section.label)}</span>
-                                        </div>
+                            {loading && !collapsed && (
+                                <li className="mt-4 space-y-2 px-1">
+                                    {[1, 2, 3].map((key) => (
+                                        <div key={key} className="h-8 animate-pulse rounded-md bg-white/60 dark:bg-dark/20" />
+                                    ))}
+                                </li>
+                            )}
 
-                                        <div className={currentMenu !== section.key ? '-rotate-90 rtl:rotate-90' : ''}>
-                                            <IconCaretDown />
-                                        </div>
-                                    </button>
+                            {!loading && error && !collapsed && (
+                                <li className="mt-4 px-1">
+                                    <p className="text-xs text-danger">Unable to load menu: {error}</p>
+                                </li>
+                            )}
 
-                                    <AnimateHeight duration={300} height={currentMenu === section.key ? 'auto' : 0}>
-                                        <ul className="sub-menu text-gray-500">
-                                            {section.links.map((link) => (
-                                                <li key={link.href}>
-                                                    <Link href={link.href} target={link.external ? '_blank' : undefined}>
-                                                        {t(link.label)}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </AnimateHeight>
+                            {tree.map((group) => (
+                                <li key={group.moduleTypeId} className="border-t border-white-light pt-3 first:border-t-0 first:pt-0 dark:border-white/10">
+                                    {!collapsed && (
+                                        <h6 className="-mx-4 mb-1 mt-3 px-7 text-xs font-extrabold uppercase tracking-wide text-black/60 first:mt-0 dark:text-white-dark">{group.moduleTypeName}</h6>
+                                    )}
+                                    {group.modules.map((module) => (
+                                        <SidebarMenuItem key={module.id} module={module} collapsed={collapsed} onExpandSidebar={expandSidebar} />
+                                    ))}
                                 </li>
                             ))}
                         </ul>
