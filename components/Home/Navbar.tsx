@@ -24,13 +24,9 @@ const Navbar = () => {
     return (
         <header className={`sticky top-0 z-50 w-full transition-all ${scrolled ? 'bg-white/90 shadow-sm backdrop-blur dark:bg-[#060818]/90' : 'bg-transparent'}`}>
             <nav className="container mx-auto flex items-center justify-between px-5 py-4">
-                <Link href="/" className="flex shrink-0 items-center gap-2">
-                    <img src="/assets/images/logo.svg" alt="logo" className="w-9" />
-                    <span className="flex flex-col leading-none">
-                        <span className="text-xl font-extrabold text-black dark:text-white-light">
-                            Smart<span className="text-primary">Surf</span>
-                        </span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white-dark">Sacco</span>
+                <Link href="/" className="flex shrink-0 items-center">
+                    <span className="inline-flex items-center rounded-md bg-white p-1">
+                        <img src="/assets/images/smoothsurf-logo.png" alt="SmoothSurf IT Consulting" className="h-9 w-auto" />
                     </span>
                 </Link>
 

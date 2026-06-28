@@ -16,10 +16,9 @@ const Footer = () => {
         <footer className="bg-[#0e1726] py-12 text-white-dark">
             <div className="container mx-auto grid gap-10 px-5 md:grid-cols-3">
                 <div>
-                    <div className="flex items-center gap-2">
-                        <img src="/assets/images/logo.svg" alt="logo" className="w-8" />
-                        <span className="text-lg font-extrabold text-white">
-                            Smart<span className="text-primary">Surf</span> Sacco
+                    <div className="flex items-center">
+                        <span className="inline-flex items-center rounded-md bg-white p-1.5">
+                            <img src="/assets/images/smoothsurf-logo.png" alt="SmoothSurf IT Consulting" className="h-9 w-auto" />
                         </span>
                     </div>
                     <p className="mt-3 max-w-xs text-sm">Cloud core banking built for Kenyan SACCOs — compliance, M-Pesa, and AI underwriting in one platform.</p>
