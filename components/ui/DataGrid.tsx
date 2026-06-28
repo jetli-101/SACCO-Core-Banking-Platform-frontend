@@ -90,11 +90,11 @@ const DataGrid = <T,>({
                         ))}
                     </select>
 
-                    <div className="relative w-full sm:w-64">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white-dark">
+                    <div className="relative w-full sm:w-72">
+                        <input type="text" className="form-input form-input-sm pr-10" placeholder={searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-white-dark">
                             <IconSearch className="h-4 w-4" />
                         </span>
-                        <input type="text" className="form-input form-input-sm pl-9" placeholder={searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} />
                     </div>
                 </div>
 
@@ -110,11 +110,11 @@ const DataGrid = <T,>({
             )}
 
             {!loading && filtered.length > 0 && (
-                <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <div className="mt-4 flex flex-col items-center gap-2">
+                    <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
                     <p className="text-sm text-white-dark">
                         Showing {rangeStart}-{rangeEnd} of {filtered.length}
                     </p>
-                    <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
                 </div>
             )}
         </div>
