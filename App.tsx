@@ -16,6 +16,21 @@ function App({ children }: PropsWithChildren) {
     }, [dispatch]);
 
     useEffect(() => {
+        // This app never registers a service worker. If one is still active on this
+        // origin (e.g. left over from a different project that previously ran on the
+        // same port), it can intercept requests and redirect/serve stale cached pages.
+        // Unregister anything found so a fresh load always hits this app's server.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+                registrations.forEach((registration) => registration.unregister());
+            });
+        }
+        if ('caches' in window) {
+            caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
+        }
+    }, []);
+
+    useEffect(() => {
         dispatch(toggleTheme(localStorage.getItem('theme') || themeConfig.theme));
         dispatch(toggleMenu(localStorage.getItem('menu') || themeConfig.menu));
         dispatch(toggleLayout(localStorage.getItem('layout') || themeConfig.layout));
