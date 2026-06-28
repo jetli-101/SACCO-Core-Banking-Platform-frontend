@@ -4,8 +4,12 @@
 export const AUTH_ENDPOINTS = {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
+    REFRESH: '/auth/refresh',
+    // Confirmed against AuthController: the real backend always issues a REGISTRATION-purpose
+    // OTP for these two, regardless of caller intent — there is no password-reset OTP endpoint yet.
+    SEND_OTP: '/auth/send-otp',
     VERIFY_OTP: '/auth/verify-otp',
+    LOGOUT: '/auth/logout',
     RESEND_OTP: '/auth/resend-otp',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
