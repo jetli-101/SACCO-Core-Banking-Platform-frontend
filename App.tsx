@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IRootState } from './store';
 import { toggleRTL, toggleTheme, toggleLocale, toggleMenu, toggleLayout, toggleAnimation, toggleNavbar, toggleSemidark } from './store/themeConfigSlice';
 import { hydrateAuth } from './store/slices/auth/authSlice';
+import ToastContainer from './components/ui/ToastContainer';
 
 function App({ children }: PropsWithChildren) {
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
@@ -35,6 +36,7 @@ function App({ children }: PropsWithChildren) {
             } main-section relative font-nunito text-sm font-normal antialiased`}
         >
             {children}
+            <ToastContainer />
         </div>
     );
 }
