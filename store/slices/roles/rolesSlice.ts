@@ -1,11 +1,13 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { apiDelete, apiGet, apiPost, apiPut, ROLE_ENDPOINTS, MODULE_ENDPOINTS } from '../../../urlhelper';
 import { ModuleNode } from '../modules/modulesSlice';
+import { GroupMember } from '../common/types';
 
 export interface Role {
     id: string;
     name: string;
     description?: string;
+    memberCount: number;
 }
 
 // Matches RoleRequest on the backend.
@@ -24,6 +26,8 @@ interface RolesState {
     roles: Role[];
     rolesLoading: boolean;
     rolesError: string | null;
+    members: GroupMember[];
+    membersLoading: boolean;
     saving: boolean;
     error: string | null;
 }
@@ -32,6 +36,8 @@ const initialState: RolesState = {
     roles: [],
     rolesLoading: false,
     rolesError: null,
+    members: [],
+    membersLoading: false,
     saving: false,
     error: null,
 };
@@ -94,6 +100,21 @@ export const grantModulesToRole = createAsyncThunk('roles/grantModules', async (
 
 export const revokeModulesFromRole = createAsyncThunk('roles/revokeModules', async ({ roleId, moduleIds }: { roleId: string; moduleIds: string[] }) => {
     await apiDelete(ROLE_ENDPOINTS.MODULES(roleId), moduleIds);
+});
+
+export const fetchRoleMembers = createAsyncThunk('roles/fetchMembers', async (roleId: string) => {
+    const response = await apiGet<BackendEnvelope<GroupMember[]>>(ROLE_ENDPOINTS.MEMBERS(roleId));
+    return response.data;
+});
+
+export const addRoleMember = createAsyncThunk('roles/addMember', async ({ roleId, userId }: { roleId: string; userId: string }) => {
+    const response = await apiPost<BackendEnvelope<GroupMember>>(ROLE_ENDPOINTS.MEMBERS(roleId), { userId });
+    return response.data;
+});
+
+export const removeRoleMember = createAsyncThunk('roles/removeMember', async ({ roleId, userId }: { roleId: string; userId: string }) => {
+    await apiDelete(ROLE_ENDPOINTS.REMOVE_MEMBER(roleId, userId));
+    return userId;
 });
 
 const rolesSlice = createSlice({
@@ -197,6 +218,41 @@ const rolesSlice = createSlice({
             })
             .addCase(revokeModulesFromRole.rejected, (state) => {
                 state.saving = false;
+            })
+            .addCase(fetchRoleMembers.pending, (state) => {
+                state.membersLoading = true;
+            })
+            .addCase(fetchRoleMembers.fulfilled, (state, action) => {
+                state.membersLoading = false;
+                state.members = action.payload;
+            })
+            .addCase(fetchRoleMembers.rejected, (state, action) => {
+                state.membersLoading = false;
+                state.error = action.error.message || 'Unable to load members';
+            })
+            .addCase(addRoleMember.pending, (state) => {
+                state.saving = true;
+                state.error = null;
+            })
+            .addCase(addRoleMember.fulfilled, (state, action) => {
+                state.saving = false;
+                state.members = [...state.members, action.payload];
+            })
+            .addCase(addRoleMember.rejected, (state, action) => {
+                state.saving = false;
+                state.error = action.error.message || 'Unable to assign member';
+            })
+            .addCase(removeRoleMember.pending, (state) => {
+                state.saving = true;
+                state.error = null;
+            })
+            .addCase(removeRoleMember.fulfilled, (state, action) => {
+                state.saving = false;
+                state.members = state.members.filter((member) => member.userId !== action.payload);
+            })
+            .addCase(removeRoleMember.rejected, (state, action) => {
+                state.saving = false;
+                state.error = action.error.message || 'Unable to remove member';
             });
     },
 });

@@ -39,17 +39,17 @@ const Modal = ({ isOpen, onClose, title, footer, size = 'md', children }: ModalP
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className={`panel w-full ${sizeClasses[size]} rounded-lg border-0 p-0`}>
+                            <Dialog.Panel className={`panel flex max-h-[85vh] w-full flex-col ${sizeClasses[size]} rounded-lg border-0 p-0`}>
                                 {title && (
-                                    <div className="flex items-center justify-between border-b border-white-light px-5 py-3 dark:border-white/10">
+                                    <div className="flex shrink-0 items-center justify-between border-b border-white-light px-5 py-3 dark:border-white/10">
                                         <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
                                         <button type="button" className="text-white-dark hover:text-dark dark:hover:text-white-light" onClick={onClose}>
                                             <IconX className="h-5 w-5" />
                                         </button>
                                     </div>
                                 )}
-                                <div className="p-5">{children}</div>
-                                {footer && <div className="flex items-center justify-end gap-2 border-t border-white-light px-5 py-3 dark:border-white/10">{footer}</div>}
+                                <div className="overflow-y-auto p-5">{children}</div>
+                                {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-white-light px-5 py-3 dark:border-white/10">{footer}</div>}
                             </Dialog.Panel>
                         </Transition.Child>
                     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchRoles, createRole, updateRole, deleteRole, clearRolesError, Role, RolePayload } from '@/store/slices/roles/rolesSlice';
+import { fetchRoles, createRole, deleteRole, clearRolesError, Role, RolePayload } from '@/store/slices/roles/rolesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import DataGrid from '@/components/ui/DataGrid';
 import StatCard from '@/components/ui/StatCard';
@@ -11,49 +12,30 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-import RoleModulesModal from '@/components/roles/RoleModulesModal';
 import IconPlus from '@/components/Icon/IconPlus';
-import IconRefresh from '@/components/Icon/IconRefresh';
+import IconPrinter from '@/components/Icon/IconPrinter';
 import IconUsersGroup from '@/components/Icon/IconUsersGroup';
+import IconUsers from '@/components/Icon/IconUsers';
+import IconUserPlus from '@/components/Icon/IconUserPlus';
 
 const emptyForm: RolePayload = { name: '', description: '' };
 
 const RolesPage = () => {
     const dispatch = useAppDispatch();
+    const router = useRouter();
     const { roles, rolesLoading, rolesError, saving, error } = useAppSelector((state) => state.roles);
 
     const [modalOpen, setModalOpen] = useState(false);
-    const [editing, setEditing] = useState<Role | null>(null);
-    const [viewOnly, setViewOnly] = useState(false);
     const [form, setForm] = useState<RolePayload>(emptyForm);
     const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
     const [deleting, setDeleting] = useState(false);
-    const [modulesTarget, setModulesTarget] = useState<Role | null>(null);
 
     useEffect(() => {
         dispatch(fetchRoles());
     }, [dispatch]);
 
     const openCreate = () => {
-        setEditing(null);
-        setViewOnly(false);
         setForm(emptyForm);
-        dispatch(clearRolesError());
-        setModalOpen(true);
-    };
-
-    const openEdit = (role: Role) => {
-        setEditing(role);
-        setViewOnly(false);
-        setForm({ name: role.name, description: role.description || '' });
-        dispatch(clearRolesError());
-        setModalOpen(true);
-    };
-
-    const openView = (role: Role) => {
-        setEditing(role);
-        setViewOnly(true);
-        setForm({ name: role.name, description: role.description || '' });
         dispatch(clearRolesError());
         setModalOpen(true);
     };
@@ -61,14 +43,10 @@ const RolesPage = () => {
     const submitForm = async (event: React.FormEvent) => {
         event.preventDefault();
         try {
-            if (editing) {
-                await dispatch(updateRole({ id: editing.id, payload: form })).unwrap();
-                dispatch(showToast({ variant: 'success', message: `Role "${form.name}" updated successfully` }));
-            } else {
-                await dispatch(createRole(form)).unwrap();
-                dispatch(showToast({ variant: 'success', message: `Role "${form.name}" created successfully` }));
-            }
+            const role = await dispatch(createRole(form)).unwrap();
+            dispatch(showToast({ variant: 'success', message: `Role "${form.name}" created successfully` }));
             setModalOpen(false);
+            router.push(`/dashboard/admin/roles/${role.id}?tab=permissions`);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to save role' }));
         }
@@ -88,23 +66,24 @@ const RolesPage = () => {
         }
     };
 
+    const totalAssignments = roles.reduce((sum, role) => sum + role.memberCount, 0);
+    const avgMembersPerRole = roles.length ? Math.round(totalAssignments / roles.length) : 0;
+
     return (
         <div>
-            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Roles' }]} />
+            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Configuration' }, { label: 'Roles' }]} />
 
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold">Roles</h1>
-                    <p className="text-white-dark">Manage the role groups that control which modules show up in a member&apos;s sidebar</p>
+                    <p className="text-white-dark">Manage system roles configuration across your application</p>
                 </div>
-                <Button onClick={openCreate}>
-                    <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                    New Role
-                </Button>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-sm">
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <StatCard label="Total Roles" value={roles.length} icon={<IconUsersGroup className="h-4 w-4" />} />
+                <StatCard label="Total Assignments" value={totalAssignments} icon={<IconUsers className="h-4 w-4" />} />
+                <StatCard label="Avg Members/Role" value={avgMembersPerRole} icon={<IconUserPlus className="h-4 w-4" />} />
             </div>
 
             {(error || rolesError) && (
@@ -116,9 +95,20 @@ const RolesPage = () => {
             )}
 
             <div className="panel mt-5">
-                <div className="mb-5">
-                    <h5 className="text-lg font-semibold">Role Records</h5>
-                    <p className="text-sm text-white-dark">View and manage all role groups, and which modules each one can access</p>
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                    <h5 className="text-lg font-semibold">
+                        System Roles <span className="text-white-dark">{roles.length}</span>
+                    </h5>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline-primary" size="sm" onClick={() => window.print()}>
+                            <IconPrinter className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
+                            Print
+                        </Button>
+                        <Button onClick={openCreate}>
+                            <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                            Add New Role
+                        </Button>
+                    </div>
                 </div>
 
                 <DataGrid
@@ -127,16 +117,22 @@ const RolesPage = () => {
                             header: 'Actions',
                             accessor: (row: Role) => (
                                 <RowActionsMenu
-                                    onView={() => openView(row)}
-                                    onEdit={() => openEdit(row)}
-                                    onManageAccess={() => setModulesTarget(row)}
+                                    onView={() => router.push(`/dashboard/admin/roles/${row.id}`)}
                                     onDelete={() => setDeleteTarget(row)}
                                     label={`Actions for ${row.name}`}
                                 />
                             ),
                         },
-                        { header: 'Name', accessor: 'name' },
+                        { header: 'Role Name', accessor: 'name' },
                         { header: 'Description', accessor: (row: Role) => row.description || '—' },
+                        {
+                            header: 'Status',
+                            accessor: () => (
+                                <span className="badge flex w-fit items-center gap-1 bg-success-light text-success">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-success" /> Active
+                                </span>
+                            ),
+                        },
                     ]}
                     data={roles}
                     rowKey={(row) => row.id}
@@ -144,41 +140,21 @@ const RolesPage = () => {
                     searchPlaceholder="Search roles..."
                     loading={rolesLoading}
                     emptyMessage="No roles yet"
-                    toolbarActions={
-                        <Button variant="outline-primary" size="sm" onClick={() => dispatch(fetchRoles())}>
-                            <IconRefresh className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            Refresh
-                        </Button>
-                    }
                 />
             </div>
 
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={viewOnly ? 'View Role' : editing ? 'Edit Role' : 'New Role'}>
+            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="New Role">
                 <form onSubmit={submitForm} className="space-y-4">
-                    <Input id="name" label="Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="e.g. ROLE_BRANCH_MANAGER" required disabled={viewOnly} />
-                    <Input
-                        id="description"
-                        label="Description"
-                        value={form.description}
-                        onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-                        disabled={viewOnly}
-                    />
+                    <Input id="name" label="Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="e.g. ROLE_BRANCH_MANAGER" required />
+                    <Input id="description" label="Description" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
 
                     <div className="flex items-center justify-end gap-2 pt-2">
-                        {viewOnly ? (
-                            <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
-                                Close
-                            </Button>
-                        ) : (
-                            <>
-                                <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit" disabled={saving}>
-                                    {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
-                                </Button>
-                            </>
-                        )}
+                        <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving ? 'Creating…' : 'Create & Continue to Permissions'}
+                        </Button>
                     </div>
                 </form>
             </Modal>
@@ -191,8 +167,6 @@ const RolesPage = () => {
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteTarget(null)}
             />
-
-            <RoleModulesModal isOpen={!!modulesTarget} roleId={modulesTarget?.id ?? null} roleName={modulesTarget?.name} onClose={() => setModulesTarget(null)} />
         </div>
     );
 };

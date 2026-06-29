@@ -6,4 +6,6 @@ export const ROLE_ENDPOINTS = {
     UPDATE: (id: string) => `/roles/${id}`,
     DELETE: (id: string) => `/roles/${id}`,
     MODULES: (roleId: string) => `/roles/${roleId}/modules`,
+    MEMBERS: (roleId: string) => `/roles/${roleId}/members`,
+    REMOVE_MEMBER: (roleId: string, userId: string) => `/roles/${roleId}/members/${userId}`,
 };
