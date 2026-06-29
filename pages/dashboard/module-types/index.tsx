@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchModuleTypes, createModuleType, updateModuleType, deleteModuleType, clearModulesError, ModuleType, ModuleTypePayload } from '@/store/slices/modules/modulesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
@@ -8,11 +7,12 @@ import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
+import RowActionsMenu from '@/components/ui/RowActionsMenu';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconRefresh from '@/components/Icon/IconRefresh';
-import IconEdit from '@/components/Icon/IconEdit';
-import IconTrash from '@/components/Icon/IconTrash';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 
 const emptyForm: ModuleTypePayload = { name: '', textId: '', orderNo: 0, description: '' };
@@ -23,7 +23,10 @@ const ModuleTypesPage = () => {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ModuleType | null>(null);
+    const [viewOnly, setViewOnly] = useState(false);
     const [form, setForm] = useState<ModuleTypePayload>(emptyForm);
+    const [deleteTarget, setDeleteTarget] = useState<ModuleType | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         dispatch(fetchModuleTypes());
@@ -31,6 +34,7 @@ const ModuleTypesPage = () => {
 
     const openCreate = () => {
         setEditing(null);
+        setViewOnly(false);
         setForm(emptyForm);
         dispatch(clearModulesError());
         setModalOpen(true);
@@ -38,6 +42,15 @@ const ModuleTypesPage = () => {
 
     const openEdit = (type: ModuleType) => {
         setEditing(type);
+        setViewOnly(false);
+        setForm({ name: type.name, textId: type.textId, orderNo: type.orderNo, description: type.description || '' });
+        dispatch(clearModulesError());
+        setModalOpen(true);
+    };
+
+    const openView = (type: ModuleType) => {
+        setEditing(type);
+        setViewOnly(true);
         setForm({ name: type.name, textId: type.textId, orderNo: type.orderNo, description: type.description || '' });
         dispatch(clearModulesError());
         setModalOpen(true);
@@ -59,28 +72,23 @@ const ModuleTypesPage = () => {
         }
     };
 
-    const handleDelete = async (type: ModuleType) => {
-        if (!window.confirm(`Delete module type "${type.name}"? This cannot be undone.`)) return;
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await dispatch(deleteModuleType(type.id)).unwrap();
-            dispatch(showToast({ variant: 'success', message: `Module type "${type.name}" deleted successfully` }));
+            await dispatch(deleteModuleType(deleteTarget.id)).unwrap();
+            dispatch(showToast({ variant: 'success', message: `Module type "${deleteTarget.name}" deleted successfully` }));
+            setDeleteTarget(null);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to delete module type' }));
+        } finally {
+            setDeleting(false);
         }
     };
 
     return (
         <div>
-            <ul className="flex space-x-2 rtl:space-x-reverse">
-                <li>
-                    <Link href="/dashboard" className="text-primary hover:underline">
-                        Dashboard
-                    </Link>
-                </li>
-                <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                    <span>Module Types</span>
-                </li>
-            </ul>
+            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Module Types' }]} />
 
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -116,14 +124,7 @@ const ModuleTypesPage = () => {
                         {
                             header: 'Actions',
                             accessor: (row: ModuleType) => (
-                                <div className="flex items-center gap-2">
-                                    <button type="button" className="hover:text-primary" onClick={() => openEdit(row)} aria-label={`Edit ${row.name}`}>
-                                        <IconEdit className="h-4.5 w-4.5" />
-                                    </button>
-                                    <button type="button" className="hover:text-danger" onClick={() => handleDelete(row)} aria-label={`Delete ${row.name}`}>
-                                        <IconTrash className="h-4.5 w-4.5" />
-                                    </button>
-                                </div>
+                                <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
                             ),
                         },
                         { header: 'Name', accessor: 'name' },
@@ -146,29 +147,61 @@ const ModuleTypesPage = () => {
                 />
             </div>
 
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Module Type' : 'New Module Type'}>
+            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={viewOnly ? 'View Module Type' : editing ? 'Edit Module Type' : 'New Module Type'}>
                 <form onSubmit={submitForm} className="space-y-4">
-                    <Input id="name" label="Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required />
-                    <Input id="textId" label="Text ID *" value={form.textId} onChange={(e) => setForm((prev) => ({ ...prev, textId: e.target.value }))} placeholder="e.g. MEMBER_MGMT" required />
+                    <Input id="name" label="Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required disabled={viewOnly} />
+                    <Input
+                        id="textId"
+                        label="Text ID *"
+                        value={form.textId}
+                        onChange={(e) => setForm((prev) => ({ ...prev, textId: e.target.value }))}
+                        placeholder="e.g. MEMBER_MGMT"
+                        required
+                        disabled={viewOnly}
+                    />
                     <Input
                         id="orderNo"
                         label="Order No"
                         type="number"
                         value={form.orderNo}
                         onChange={(e) => setForm((prev) => ({ ...prev, orderNo: Number(e.target.value) }))}
+                        disabled={viewOnly}
                     />
-                    <Input id="description" label="Description" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
+                    <Input
+                        id="description"
+                        label="Description"
+                        value={form.description}
+                        onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                        disabled={viewOnly}
+                    />
 
                     <div className="flex items-center justify-end gap-2 pt-2">
-                        <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={saving}>
-                            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
-                        </Button>
+                        {viewOnly ? (
+                            <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                Close
+                            </Button>
+                        ) : (
+                            <>
+                                <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={saving}>
+                                    {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmModal
+                isOpen={!!deleteTarget}
+                title="Delete Module Type"
+                message={`Delete module type "${deleteTarget?.name}"? This cannot be undone.`}
+                loading={deleting}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+            />
         </div>
     );
 };

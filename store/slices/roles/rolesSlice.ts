@@ -1,0 +1,205 @@
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { apiDelete, apiGet, apiPost, apiPut, ROLE_ENDPOINTS, MODULE_ENDPOINTS } from '../../../urlhelper';
+import { ModuleNode } from '../modules/modulesSlice';
+
+export interface Role {
+    id: string;
+    name: string;
+    description?: string;
+}
+
+// Matches RoleRequest on the backend.
+export interface RolePayload {
+    name: string;
+    description?: string;
+}
+
+interface BackendEnvelope<T> {
+    success: boolean;
+    message: string;
+    data: T;
+}
+
+interface RolesState {
+    roles: Role[];
+    rolesLoading: boolean;
+    rolesError: string | null;
+    saving: boolean;
+    error: string | null;
+}
+
+const initialState: RolesState = {
+    roles: [],
+    rolesLoading: false,
+    rolesError: null,
+    saving: false,
+    error: null,
+};
+
+const byName = (list: Role[]) => [...list].sort((a, b) => a.name.localeCompare(b.name));
+
+// Role groups double as the "user groups" that gate which modules show up in a member's
+// sidebar — Role.modules on the backend is the same many-to-many a SYSTEM_ADMINISTRATOR
+// manages here, just owned from the role side instead of the module side.
+export const fetchRoles = createAsyncThunk('roles/fetchAll', async () => {
+    const response = await apiGet<BackendEnvelope<Role[]>>(ROLE_ENDPOINTS.ALL);
+    return response.data;
+});
+
+export const fetchRoleById = createAsyncThunk('roles/fetchById', async (id: string) => {
+    const response = await apiGet<BackendEnvelope<Role>>(ROLE_ENDPOINTS.BY_ID(id));
+    return response.data;
+});
+
+export const createRole = createAsyncThunk('roles/create', async (payload: RolePayload) => {
+    const response = await apiPost<BackendEnvelope<Role>>(ROLE_ENDPOINTS.CREATE, payload);
+    return response.data;
+});
+
+export const updateRole = createAsyncThunk('roles/update', async ({ id, payload }: { id: string; payload: RolePayload }) => {
+    const response = await apiPut<BackendEnvelope<Role>>(ROLE_ENDPOINTS.UPDATE(id), payload);
+    return response.data;
+});
+
+export const deleteRole = createAsyncThunk('roles/delete', async (id: string) => {
+    await apiDelete<BackendEnvelope<null>>(ROLE_ENDPOINTS.DELETE(id));
+    return id;
+});
+
+// Roles that currently have a given module in their menu — used to pre-populate the
+// "Manage Access" picker for an existing module.
+export const fetchModuleRoles = createAsyncThunk('roles/fetchForModule', async (moduleId: string) => {
+    const response = await apiGet<BackendEnvelope<Role[]>>(MODULE_ENDPOINTS.ROLES(moduleId));
+    return response.data;
+});
+
+// Modules a given role currently has in its menu — used to pre-populate the "Manage
+// Modules" picker for an existing role (the inverse of fetchModuleRoles above).
+export const fetchRoleModules = createAsyncThunk('roles/fetchModules', async (roleId: string) => {
+    const response = await apiGet<BackendEnvelope<ModuleNode[]>>(ROLE_ENDPOINTS.MODULES(roleId));
+    return response.data;
+});
+
+export const grantModuleToRoles = createAsyncThunk('roles/grantModule', async ({ moduleId, roleIds }: { moduleId: string; roleIds: string[] }) => {
+    await Promise.all(roleIds.map((roleId) => apiPost(ROLE_ENDPOINTS.MODULES(roleId), [moduleId])));
+});
+
+export const revokeModuleFromRoles = createAsyncThunk('roles/revokeModule', async ({ moduleId, roleIds }: { moduleId: string; roleIds: string[] }) => {
+    await Promise.all(roleIds.map((roleId) => apiDelete(ROLE_ENDPOINTS.MODULES(roleId), [moduleId])));
+});
+
+export const grantModulesToRole = createAsyncThunk('roles/grantModules', async ({ roleId, moduleIds }: { roleId: string; moduleIds: string[] }) => {
+    await apiPost(ROLE_ENDPOINTS.MODULES(roleId), moduleIds);
+});
+
+export const revokeModulesFromRole = createAsyncThunk('roles/revokeModules', async ({ roleId, moduleIds }: { roleId: string; moduleIds: string[] }) => {
+    await apiDelete(ROLE_ENDPOINTS.MODULES(roleId), moduleIds);
+});
+
+const rolesSlice = createSlice({
+    name: 'roles',
+    initialState,
+    reducers: {
+        clearRolesError(state) {
+            state.error = null;
+        },
+    },
+    extraReducers: (builder) => {
+        builder
+            .addCase(fetchRoles.pending, (state) => {
+                state.rolesLoading = true;
+                state.rolesError = null;
+            })
+            .addCase(fetchRoles.fulfilled, (state, action) => {
+                state.rolesLoading = false;
+                state.roles = byName(action.payload);
+            })
+            .addCase(fetchRoles.rejected, (state, action) => {
+                state.rolesLoading = false;
+                state.rolesError = action.error.message || 'Unable to load roles';
+            })
+            .addCase(fetchRoleById.fulfilled, (state, action) => {
+                const index = state.roles.findIndex((role) => role.id === action.payload.id);
+                if (index >= 0) {
+                    state.roles[index] = action.payload;
+                } else {
+                    state.roles = byName([...state.roles, action.payload]);
+                }
+            })
+            .addCase(createRole.pending, (state) => {
+                state.saving = true;
+                state.error = null;
+            })
+            .addCase(createRole.fulfilled, (state, action) => {
+                state.saving = false;
+                state.roles = byName([...state.roles, action.payload]);
+            })
+            .addCase(createRole.rejected, (state, action) => {
+                state.saving = false;
+                state.error = action.error.message || 'Unable to create role';
+            })
+            .addCase(updateRole.pending, (state) => {
+                state.saving = true;
+                state.error = null;
+            })
+            .addCase(updateRole.fulfilled, (state, action) => {
+                state.saving = false;
+                state.roles = byName(state.roles.map((role) => (role.id === action.payload.id ? action.payload : role)));
+            })
+            .addCase(updateRole.rejected, (state, action) => {
+                state.saving = false;
+                state.error = action.error.message || 'Unable to update role';
+            })
+            .addCase(deleteRole.pending, (state) => {
+                state.saving = true;
+                state.error = null;
+            })
+            .addCase(deleteRole.fulfilled, (state, action) => {
+                state.saving = false;
+                state.roles = state.roles.filter((role) => role.id !== action.payload);
+            })
+            .addCase(deleteRole.rejected, (state, action) => {
+                state.saving = false;
+                state.error = action.error.message || 'Unable to delete role';
+            })
+            .addCase(grantModuleToRoles.pending, (state) => {
+                state.saving = true;
+            })
+            .addCase(grantModuleToRoles.fulfilled, (state) => {
+                state.saving = false;
+            })
+            .addCase(grantModuleToRoles.rejected, (state) => {
+                state.saving = false;
+            })
+            .addCase(revokeModuleFromRoles.pending, (state) => {
+                state.saving = true;
+            })
+            .addCase(revokeModuleFromRoles.fulfilled, (state) => {
+                state.saving = false;
+            })
+            .addCase(revokeModuleFromRoles.rejected, (state) => {
+                state.saving = false;
+            })
+            .addCase(grantModulesToRole.pending, (state) => {
+                state.saving = true;
+            })
+            .addCase(grantModulesToRole.fulfilled, (state) => {
+                state.saving = false;
+            })
+            .addCase(grantModulesToRole.rejected, (state) => {
+                state.saving = false;
+            })
+            .addCase(revokeModulesFromRole.pending, (state) => {
+                state.saving = true;
+            })
+            .addCase(revokeModulesFromRole.fulfilled, (state) => {
+                state.saving = false;
+            })
+            .addCase(revokeModulesFromRole.rejected, (state) => {
+                state.saving = false;
+            });
+    },
+});
+
+export const { clearRolesError } = rolesSlice.actions;
+export default rolesSlice.reducer;

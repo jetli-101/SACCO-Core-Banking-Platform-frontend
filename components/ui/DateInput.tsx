@@ -52,6 +52,7 @@ const formatDisplay = (value: string, type: 'date' | 'datetime') => {
 // in the app doesn't change what's stored or sent to the backend.
 const DateInput = ({ id, label, error, helperText, value, onChange, type = 'date', required, placeholder, minDate, maxDate, disabled, className = '' }: DateInputProps) => {
     const [open, setOpen] = useState(false);
+    const [view, setView] = useState<'days' | 'years'>('days');
     const containerRef = useRef<HTMLDivElement>(null);
 
     const selected = parseDatePart(value);
@@ -60,11 +61,15 @@ const DateInput = ({ id, label, error, helperText, value, onChange, type = 'date
 
     const [viewYear, setViewYear] = useState(selected?.year ?? today.getFullYear());
     const [viewMonth, setViewMonth] = useState(selected?.month ?? today.getMonth());
+    const [yearPageStart, setYearPageStart] = useState(Math.floor((selected?.year ?? today.getFullYear()) / 12) * 12);
 
     useEffect(() => {
         if (open) {
-            setViewYear(selected?.year ?? today.getFullYear());
+            const year = selected?.year ?? today.getFullYear();
+            setViewYear(year);
             setViewMonth(selected?.month ?? today.getMonth());
+            setYearPageStart(Math.floor(year / 12) * 12);
+            setView('days');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
@@ -144,47 +149,103 @@ const DateInput = ({ id, label, error, helperText, value, onChange, type = 'date
 
                 {open && (
                     <div className="absolute z-20 mt-1 w-[280px] rounded-md border border-white-light bg-white p-3 shadow-lg dark:border-[#1b2e4b] dark:bg-[#1b2e4b]">
-                        <div className="flex items-center justify-between">
-                            <button type="button" className="rounded p-1 hover:bg-white-light/60 dark:hover:bg-dark/40" onClick={() => goToMonth(-1)} aria-label="Previous month">
-                                «
-                            </button>
-                            <span className="text-sm font-semibold">
-                                {MONTHS[viewMonth]} {viewYear}
-                            </span>
-                            <button type="button" className="rounded p-1 hover:bg-white-light/60 dark:hover:bg-dark/40" onClick={() => goToMonth(1)} aria-label="Next month">
-                                »
-                            </button>
-                        </div>
-
-                        <div className="mt-2 grid grid-cols-7 gap-1 text-center text-xs text-white-dark">
-                            {WEEKDAYS.map((day) => (
-                                <span key={day}>{day}</span>
-                            ))}
-                        </div>
-
-                        <div className="mt-1 grid grid-cols-7 gap-1 text-center text-sm">
-                            {cells.map((day, index) => {
-                                if (!day) return <span key={`blank-${index}`} />;
-                                const isSelected = !!selected && selected.year === viewYear && selected.month === viewMonth && selected.day === day;
-                                const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === day;
-                                const disabledDay = isDisabledDay(viewYear, viewMonth, day);
-                                return (
+                        {view === 'days' ? (
+                            <div className="flex items-center justify-between">
+                                <button type="button" className="rounded p-1 hover:bg-white-light/60 dark:hover:bg-dark/40" onClick={() => goToMonth(-1)} aria-label="Previous month">
+                                    «
+                                </button>
+                                <span className="text-sm font-semibold">
+                                    {MONTHS[viewMonth]}{' '}
                                     <button
-                                        key={day}
                                         type="button"
-                                        disabled={disabledDay}
-                                        onClick={() => commitDate(viewYear, viewMonth, day)}
-                                        className={`rounded-full p-1.5 hover:bg-primary/10 ${isSelected ? 'bg-primary text-white hover:bg-primary' : ''} ${
-                                            isToday && !isSelected ? 'font-bold text-primary' : ''
-                                        } ${disabledDay ? 'cursor-not-allowed opacity-30 hover:bg-transparent' : ''}`}
+                                        className="rounded px-1.5 py-0.5 hover:bg-primary/10 hover:text-primary"
+                                        onClick={() => {
+                                            setYearPageStart(Math.floor(viewYear / 12) * 12);
+                                            setView('years');
+                                        }}
                                     >
-                                        {day}
+                                        {viewYear}
                                     </button>
-                                );
-                            })}
-                        </div>
+                                </span>
+                                <button type="button" className="rounded p-1 hover:bg-white-light/60 dark:hover:bg-dark/40" onClick={() => goToMonth(1)} aria-label="Next month">
+                                    »
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between">
+                                <button
+                                    type="button"
+                                    className="rounded p-1 hover:bg-white-light/60 dark:hover:bg-dark/40"
+                                    onClick={() => setYearPageStart((start) => start - 12)}
+                                    aria-label="Previous years"
+                                >
+                                    «
+                                </button>
+                                <span className="text-sm font-semibold">
+                                    {yearPageStart} – {yearPageStart + 11}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="rounded p-1 hover:bg-white-light/60 dark:hover:bg-dark/40"
+                                    onClick={() => setYearPageStart((start) => start + 12)}
+                                    aria-label="Next years"
+                                >
+                                    »
+                                </button>
+                            </div>
+                        )}
 
-                        {type === 'datetime' && (
+                        {view === 'years' ? (
+                            <div className="mt-2 grid grid-cols-3 gap-1 text-center text-sm">
+                                {Array.from({ length: 12 }, (_, i) => yearPageStart + i).map((year) => (
+                                    <button
+                                        key={year}
+                                        type="button"
+                                        onClick={() => {
+                                            setViewYear(year);
+                                            setView('days');
+                                        }}
+                                        className={`rounded p-1.5 hover:bg-primary/10 ${
+                                            year === viewYear ? 'bg-primary text-white hover:bg-primary' : ''
+                                        } ${year === today.getFullYear() && year !== viewYear ? 'font-bold text-primary' : ''}`}
+                                    >
+                                        {year}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <>
+                                <div className="mt-2 grid grid-cols-7 gap-1 text-center text-xs text-white-dark">
+                                    {WEEKDAYS.map((day) => (
+                                        <span key={day}>{day}</span>
+                                    ))}
+                                </div>
+
+                                <div className="mt-1 grid grid-cols-7 gap-1 text-center text-sm">
+                                    {cells.map((day, index) => {
+                                        if (!day) return <span key={`blank-${index}`} />;
+                                        const isSelected = !!selected && selected.year === viewYear && selected.month === viewMonth && selected.day === day;
+                                        const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === day;
+                                        const disabledDay = isDisabledDay(viewYear, viewMonth, day);
+                                        return (
+                                            <button
+                                                key={day}
+                                                type="button"
+                                                disabled={disabledDay}
+                                                onClick={() => commitDate(viewYear, viewMonth, day)}
+                                                className={`rounded-full p-1.5 hover:bg-primary/10 ${isSelected ? 'bg-primary text-white hover:bg-primary' : ''} ${
+                                                    isToday && !isSelected ? 'font-bold text-primary' : ''
+                                                } ${disabledDay ? 'cursor-not-allowed opacity-30 hover:bg-transparent' : ''}`}
+                                            >
+                                                {day}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
+
+                        {view === 'days' && type === 'datetime' && (
                             <div className="mt-3 flex items-center justify-between gap-2 border-t border-white-light pt-3 dark:border-[#253b5c]">
                                 <div className="flex items-center gap-1">
                                     <select className="form-select form-select-sm" value={time.hour} onChange={(e) => commitTime(Number(e.target.value), time.minute)}>

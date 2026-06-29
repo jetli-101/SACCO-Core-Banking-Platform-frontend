@@ -9,13 +9,14 @@ interface IconPickerProps {
     onChange: (iconName: string) => void;
     placeholder?: string;
     required?: boolean;
+    disabled?: boolean;
 }
 
 // Searchable icon picker for the module "icon" field — lists every component under
 // components/Icon (see iconRegistry.ts) with a live preview, so whatever an admin picks
 // is guaranteed to render. Stores the exact component name (e.g. "IconUser"), which
 // moduleIcons.ts resolves back to the component for sidebar rendering.
-const IconPicker = ({ id, label, value, onChange, placeholder = 'Select…', required }: IconPickerProps) => {
+const IconPicker = ({ id, label, value, onChange, placeholder = 'Select…', required, disabled }: IconPickerProps) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
@@ -44,7 +45,8 @@ const IconPicker = ({ id, label, value, onChange, placeholder = 'Select…', req
                 <button
                     id={id}
                     type="button"
-                    className="form-input flex items-center justify-between"
+                    disabled={disabled}
+                    className="form-input flex items-center justify-between disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() => setOpen((isOpen) => !isOpen)}
                     aria-haspopup="listbox"
                     aria-expanded={open}

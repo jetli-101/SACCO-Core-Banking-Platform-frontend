@@ -4,12 +4,12 @@
 //   modules:      DELETE /modules/delete/{id}
 //   module-types: DELETE /module-types/{id}
 export const MODULE_ENDPOINTS = {
-    MODULE_TREE: '/modules/module-tree',
     ALL: '/modules/all',
     BY_ID: (id: string) => `/modules/${id}`,
     CREATE: '/modules/create',
     UPDATE: (id: string) => `/modules/update/${id}`,
     DELETE: (id: string) => `/modules/delete/${id}`,
+    ROLES: (id: string) => `/modules/${id}/roles`,
 };
 
 export const MODULE_TYPE_ENDPOINTS = {

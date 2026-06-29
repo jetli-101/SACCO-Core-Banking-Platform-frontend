@@ -23,12 +23,17 @@ const SidebarMenuItem = ({ module, collapsed, depth = 0, onExpandSidebar }: Side
     const indent = depth >= 2 ? { paddingLeft: `${(depth - 1) * 16 + 36}px` } : undefined;
 
     if (!hasChildren) {
+        // Nested rows (depth > 0) live inside .sub-menu, which already renders the small
+        // dash/bar marker via CSS (see .sidebar ul.sub-menu li a::before) — skip the icon
+        // there so children read like "- Child Name" rather than duplicating an icon per row.
         return (
             <div className="menu nav-item">
                 <Link href={module.urlPath || '#'} className={`group ${collapsed ? 'justify-center' : ''}`} style={indent} title={collapsed ? module.name : undefined}>
                     <div className="flex items-center">
-                        <Icon className="shrink-0 group-hover:!text-primary" />
-                        {!collapsed && <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{module.name}</span>}
+                        {depth === 0 && <Icon className="shrink-0 group-hover:!text-primary" />}
+                        {!collapsed && (
+                            <span className={`text-black dark:text-[#506690] dark:group-hover:text-white-dark ${depth === 0 ? 'ltr:pl-3 rtl:pr-3' : ''}`}>{module.name}</span>
+                        )}
                     </div>
                 </Link>
             </div>
@@ -45,9 +50,13 @@ const SidebarMenuItem = ({ module, collapsed, depth = 0, onExpandSidebar }: Side
                 title={collapsed ? module.name : undefined}
             >
                 <div className="flex items-center">
-                    <Icon className={`shrink-0 group-hover:!text-primary ${expanded ? '!text-primary' : ''}`} />
+                    {depth === 0 && <Icon className={`shrink-0 group-hover:!text-primary ${expanded ? '!text-primary' : ''}`} />}
                     {!collapsed && (
-                        <span className={`ltr:pl-3 rtl:pr-3 ${expanded ? 'text-primary' : 'text-black dark:text-[#506690]'} dark:group-hover:text-white-dark`}>{module.name}</span>
+                        <span
+                            className={`${depth === 0 ? 'ltr:pl-3 rtl:pr-3' : ''} ${expanded ? 'text-primary' : 'text-black dark:text-[#506690]'} dark:group-hover:text-white-dark`}
+                        >
+                            {module.name}
+                        </span>
                     )}
                 </div>
 

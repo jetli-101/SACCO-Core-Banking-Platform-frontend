@@ -4,6 +4,7 @@ import themeConfig from '../theme.config';
 const initialState = {
     isDarkMode: false,
     sidebar: false,
+    sidebarCollapsed: false,
     theme: themeConfig.theme,
     menu: themeConfig.menu,
     layout: themeConfig.layout,
@@ -99,6 +100,9 @@ const themeConfigSlice = createSlice({
         toggleSidebar(state) {
             state.sidebar = !state.sidebar;
         },
+        toggleSidebarCollapsed(state) {
+            state.sidebarCollapsed = !state.sidebarCollapsed;
+        },
 
         setPageTitle(state, { payload }) {
             document.title = `${payload} | SmoothSurf Sacco`;
@@ -106,6 +110,7 @@ const themeConfigSlice = createSlice({
     },
 });
 
-export const { toggleTheme, toggleMenu, toggleLayout, toggleRTL, toggleAnimation, toggleNavbar, toggleSemidark, toggleLocale, toggleSidebar, setPageTitle } = themeConfigSlice.actions;
+export const { toggleTheme, toggleMenu, toggleLayout, toggleRTL, toggleAnimation, toggleNavbar, toggleSemidark, toggleLocale, toggleSidebar, toggleSidebarCollapsed, setPageTitle } =
+    themeConfigSlice.actions;
 
 export default themeConfigSlice.reducer;

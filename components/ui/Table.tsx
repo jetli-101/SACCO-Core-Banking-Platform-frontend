@@ -25,7 +25,7 @@ const Table = <T,>({ columns, data, rowKey, emptyMessage = 'No records found', h
                 <thead>
                     <tr>
                         {columns.map((column, index) => (
-                            <th key={index} className={`whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white-dark ${column.className || ''}`.trim()}>
+                            <th key={index} className={`whitespace-nowrap text-sm font-semibold text-dark dark:text-white-light ${column.className || ''}`.trim()}>
                                 {column.header}
                             </th>
                         ))}
