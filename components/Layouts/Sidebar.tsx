@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { toggleSidebar, toggleSidebarCollapsed } from '../../store/themeConfigSlice';
 import { IRootState } from '../../store';
 import { useAppDispatch } from '@/store/hooks';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { fetchModuleTree } from '@/store/slices/modules/modulesSlice';
+import { fetchModules, fetchModuleTypes, buildModuleTree } from '@/store/slices/modules/modulesSlice';
 import SidebarMenuItem from './SidebarMenuItem';
 import IconMenuDashboard from '@/components/Icon/Menu/IconMenuDashboard';
 import IconCaretsDown from '@/components/Icon/IconCaretsDown';
@@ -15,11 +15,16 @@ const Sidebar = () => {
     const router = useRouter();
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
-    const { tree, treeLoading: loading, treeError: error } = useSelector((state: IRootState) => state.modules);
+    const { items, itemsLoading, itemsError, moduleTypes, moduleTypesLoading, moduleTypesError } = useSelector((state: IRootState) => state.modules);
     const dispatch = useAppDispatch();
 
+    const loading = itemsLoading || moduleTypesLoading;
+    const error = itemsError || moduleTypesError;
+    const tree = useMemo(() => buildModuleTree(items, moduleTypes), [items, moduleTypes]);
+
     useEffect(() => {
-        dispatch(fetchModuleTree());
+        dispatch(fetchModules());
+        dispatch(fetchModuleTypes());
     }, [dispatch]);
 
     useEffect(() => {

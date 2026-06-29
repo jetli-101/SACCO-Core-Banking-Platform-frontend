@@ -11,6 +11,7 @@ import IconXCircle from '@/components/Icon/IconXCircle';
 import IconInfoCircle from '@/components/Icon/IconInfoCircle';
 import IconBellBing from '@/components/Icon/IconBellBing';
 import IconLogout from '@/components/Icon/IconLogout';
+import IconUser from '@/components/Icon/IconUser';
 
 const Header = () => {
     const router = useRouter();
@@ -18,6 +19,7 @@ const Header = () => {
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
+    const authUser = useSelector((state: IRootState) => state.auth.user);
     const dispatch = useDispatch();
 
     const [notifications, setNotifications] = useState([
@@ -151,15 +153,18 @@ const Header = () => {
                                         <div className="flex items-center px-4 py-4">
                                             <img className="h-10 w-10 rounded-md object-cover" src="/assets/images/user-profile.jpeg" alt="userProfile" />
                                             <div className="truncate ltr:pl-4 rtl:pr-4">
-                                                <h4 className="text-base">
-                                                    John Doe
-                                                    <span className="rounded bg-success-light px-1 text-xs text-success ltr:ml-2 rtl:ml-2">Pro</span>
-                                                </h4>
+                                                <h4 className="text-base">{authUser?.username || 'My Account'}</h4>
                                                 <button type="button" className="text-black/60 hover:text-primary dark:text-dark-light/60 dark:hover:text-white">
-                                                    johndoe@gmail.com
+                                                    {authUser?.email || ''}
                                                 </button>
                                             </div>
                                         </div>
+                                    </li>
+                                    <li>
+                                        <Link href="/dashboard/profile">
+                                            <IconUser className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                                            Profile
+                                        </Link>
                                     </li>
                                     <li className="border-t border-white-light dark:border-white-light/10">
                                         <button

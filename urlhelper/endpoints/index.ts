@@ -3,3 +3,5 @@
 // following the same pattern as auth.ts.
 export * from './auth';
 export * from './modules';
+export * from './roles';
+export * from './members';

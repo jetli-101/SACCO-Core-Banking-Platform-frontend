@@ -1,25 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import {
-    fetchModules,
-    fetchModuleTypes,
-    createModule,
-    updateModule,
-    deleteModule,
-    clearModulesError,
-    ModuleNode,
-    ModuleRegisterPayload,
-} from '@/store/slices/modules/modulesSlice';
+import { fetchModules, fetchModuleTypes, createModule, updateModule, deleteModule, clearModulesError, ModuleNode, ModuleRegisterPayload } from '@/store/slices/modules/modulesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
+import { useModuleHierarchy } from '@/hooks/useModuleHierarchy';
 import DataGrid from '@/components/ui/DataGrid';
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import IconPicker from '@/components/ui/IconPicker';
 import Modal from '@/components/ui/Modal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
+import Breadcrumb from '@/components/ui/Breadcrumb';
+import ModuleAccessModal from '@/components/modules/ModuleAccessModal';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconRefresh from '@/components/Icon/IconRefresh';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
@@ -30,60 +25,21 @@ const emptyForm: ModuleRegisterPayload = { name: '', textId: '', description: ''
 
 const ModulesPage = () => {
     const dispatch = useAppDispatch();
-    const { items, itemsLoading, itemsError, moduleTypes, saving, error } = useAppSelector((state) => state.modules);
+    const { itemsLoading, itemsError, moduleTypes, saving, error } = useAppSelector((state) => state.modules);
+    const { orderedModules, depthById, parentOptions, moduleTypeName, moduleName, moduleHasChildren, stats } = useModuleHierarchy();
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ModuleNode | null>(null);
     const [viewOnly, setViewOnly] = useState(false);
     const [form, setForm] = useState<ModuleRegisterPayload>(emptyForm);
+    const [deleteTarget, setDeleteTarget] = useState<ModuleNode | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [accessTarget, setAccessTarget] = useState<{ id: string; name: string } | null>(null);
 
     useEffect(() => {
         dispatch(fetchModules());
         dispatch(fetchModuleTypes());
     }, [dispatch]);
-
-    const moduleTypeName = (id: string) => moduleTypes.find((type) => type.id === id)?.name || '—';
-    const moduleName = (id?: string) => (id ? items.find((item) => item.id === id)?.name || '—' : '—');
-
-    // Orders modules parent-first-then-children (any depth) so both the table and the
-    // "Parent Module" picker reflect the same nesting the sidebar renders.
-    const hierarchy = useMemo(() => {
-        const byParent = new Map<string, ModuleNode[]>();
-        const topLevel: ModuleNode[] = [];
-        items.forEach((item) => {
-            if (item.parentId && items.some((other) => other.id === item.parentId)) {
-                byParent.set(item.parentId, [...(byParent.get(item.parentId) || []), item]);
-            } else {
-                topLevel.push(item);
-            }
-        });
-
-        const sortByOrder = (list: ModuleNode[]) => [...list].sort((a, b) => a.orderNo - b.orderNo);
-        const result: { module: ModuleNode; depth: number }[] = [];
-        const visited = new Set<string>();
-        const walk = (list: ModuleNode[], depth: number) => {
-            sortByOrder(list).forEach((module) => {
-                if (visited.has(module.id)) return;
-                visited.add(module.id);
-                result.push({ module, depth });
-                walk(byParent.get(module.id) || [], depth + 1);
-            });
-        };
-        walk(topLevel, 0);
-        return result;
-    }, [items]);
-
-    const depthById = useMemo(() => new Map(hierarchy.map((entry) => [entry.module.id, entry.depth])), [hierarchy]);
-    const orderedModules = useMemo(() => hierarchy.map((entry) => entry.module), [hierarchy]);
-
-    const stats = useMemo(
-        () => ({
-            total: items.length,
-            topLevel: items.filter((item) => !item.parentId).length,
-            typesUsed: new Set(items.map((item) => item.moduleTypeId)).size,
-        }),
-        [items]
-    );
 
     const openCreate = () => {
         setEditing(null);
@@ -127,9 +83,14 @@ const ModulesPage = () => {
         setModalOpen(true);
     };
 
+    // Modules with children are just expandable groups in the sidebar (the parent button
+    // toggles open/closed, see SidebarMenuItem) — they should never carry their own urlPath,
+    // since clicking them isn't supposed to navigate anywhere.
+    const editingHasChildren = !!editing && moduleHasChildren(editing.id);
+
     const submitForm = async (event: React.FormEvent) => {
         event.preventDefault();
-        const payload: ModuleRegisterPayload = { ...form, parentId: form.parentId || undefined };
+        const payload: ModuleRegisterPayload = { ...form, parentId: form.parentId || undefined, urlPath: editingHasChildren ? '' : form.urlPath };
         try {
             if (editing) {
                 await dispatch(updateModule({ id: editing.id, payload })).unwrap();
@@ -144,28 +105,23 @@ const ModulesPage = () => {
         }
     };
 
-    const handleDelete = async (module: ModuleNode) => {
-        if (!window.confirm(`Delete module "${module.name}"? This cannot be undone.`)) return;
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await dispatch(deleteModule(module.id)).unwrap();
-            dispatch(showToast({ variant: 'success', message: `Module "${module.name}" deleted successfully` }));
+            await dispatch(deleteModule(deleteTarget.id)).unwrap();
+            dispatch(showToast({ variant: 'success', message: `Module "${deleteTarget.name}" deleted successfully` }));
+            setDeleteTarget(null);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to delete module' }));
+        } finally {
+            setDeleting(false);
         }
     };
 
     return (
         <div>
-            <ul className="flex space-x-2 rtl:space-x-reverse">
-                <li>
-                    <Link href="/dashboard" className="text-primary hover:underline">
-                        Dashboard
-                    </Link>
-                </li>
-                <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                    <span>Modules</span>
-                </li>
-            </ul>
+            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Modules' }]} />
 
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -215,7 +171,13 @@ const ModulesPage = () => {
                         {
                             header: 'Actions',
                             accessor: (row: ModuleNode) => (
-                                <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => handleDelete(row)} label={`Actions for ${row.name}`} />
+                                <RowActionsMenu
+                                    onView={() => openView(row)}
+                                    onEdit={() => openEdit(row)}
+                                    onManageAccess={() => setAccessTarget({ id: row.id, name: row.name })}
+                                    onDelete={() => setDeleteTarget(row)}
+                                    label={`Actions for ${row.name}`}
+                                />
                             ),
                         },
                         {
@@ -301,7 +263,7 @@ const ModulesPage = () => {
                             disabled={viewOnly}
                         >
                             <option value="">None (top-level)</option>
-                            {hierarchy
+                            {parentOptions
                                 .filter((entry) => entry.module.id !== editing?.id)
                                 .map((entry) => (
                                     <option key={entry.module.id} value={entry.module.id}>
@@ -315,10 +277,11 @@ const ModulesPage = () => {
                     <Input
                         id="urlPath"
                         label="Module Url"
-                        value={form.urlPath}
+                        value={editingHasChildren ? '' : form.urlPath}
                         onChange={(e) => setForm((prev) => ({ ...prev, urlPath: e.target.value }))}
                         placeholder="/dashboard/members/pending"
-                        disabled={viewOnly}
+                        disabled={viewOnly || editingHasChildren}
+                        helperText={editingHasChildren ? "Parent modules don't link anywhere — only their children do" : undefined}
                     />
                     <IconPicker id="icon" label="Icon" value={form.icon || ''} onChange={(iconName) => setForm((prev) => ({ ...prev, icon: iconName }))} disabled={viewOnly} />
                     <Input
@@ -341,9 +304,14 @@ const ModulesPage = () => {
 
                     <div className="flex items-center justify-end gap-2 pt-2 sm:col-span-2">
                         {viewOnly ? (
-                            <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
-                                Close
-                            </Button>
+                            <>
+                                <Button type="button" variant="outline-primary" onClick={() => setAccessTarget({ id: editing!.id, name: editing!.name })}>
+                                    Manage Access
+                                </Button>
+                                <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                    Close
+                                </Button>
+                            </>
                         ) : (
                             <>
                                 <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
@@ -357,6 +325,17 @@ const ModulesPage = () => {
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmModal
+                isOpen={!!deleteTarget}
+                title="Delete Module"
+                message={`Delete module "${deleteTarget?.name}"? This cannot be undone.`}
+                loading={deleting}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+            />
+
+            <ModuleAccessModal isOpen={!!accessTarget} moduleId={accessTarget?.id ?? null} moduleName={accessTarget?.name} onClose={() => setAccessTarget(null)} />
         </div>
     );
 };

@@ -55,11 +55,6 @@ interface BackendEnvelope<T> {
 }
 
 interface ModulesState {
-    tree: ModuleTreeGroup[];
-    treeLoading: boolean;
-    treeLoaded: boolean;
-    treeError: string | null;
-
     items: ModuleNode[];
     itemsLoading: boolean;
     itemsError: string | null;
@@ -73,11 +68,6 @@ interface ModulesState {
 }
 
 const initialState: ModulesState = {
-    tree: [],
-    treeLoading: false,
-    treeLoaded: false,
-    treeError: null,
-
     items: [],
     itemsLoading: false,
     itemsError: null,
@@ -92,12 +82,64 @@ const initialState: ModulesState = {
 
 const byOrderNo = <T extends { orderNo: number }>(list: T[]) => [...list].sort((a, b) => a.orderNo - b.orderNo);
 
-// --- Sidebar tree (read-only, any authenticated user) ---------------------------------
+// /modules/all nests a module's children inline (e.g. "Module Management" arrives with
+// children: [{ name: "Modules", parentId: "<Module Management's id>" }]) rather than also
+// duplicating them as separate top-level entries. Both the sidebar tree and the Modules
+// admin table need every module — nested or not — in one flat list keyed by id, with
+// parentId as the only relationship they trust (reliable at every depth, unlike .children
+// which is only populated on whichever copy the API returned it on).
+export const flattenModules = (items: ModuleNode[]): Map<string, ModuleNode> => {
+    const flat = new Map<string, ModuleNode>();
+    const collect = (list: ModuleNode[]) => {
+        list.forEach((module) => {
+            if (!flat.has(module.id)) flat.set(module.id, { ...module, children: [] });
+            if (module.children?.length) collect(module.children);
+        });
+    };
+    collect(items);
+    return flat;
+};
 
-export const fetchModuleTree = createAsyncThunk('modules/fetchTree', async () => {
-    const response = await apiGet<BackendEnvelope<ModuleTreeGroup[]>>(MODULE_ENDPOINTS.MODULE_TREE);
-    return response.data;
-});
+// Builds the sidebar's grouped tree from /modules/all, rebuilding parent -> children
+// purely from parentId across the fully-flattened module set (see flattenModules above).
+export const buildModuleTree = (items: ModuleNode[], moduleTypes: ModuleType[]): ModuleTreeGroup[] => {
+    const flat = flattenModules(items);
+
+    flat.forEach((module) => {
+        const parent = module.parentId && module.parentId !== module.id ? flat.get(module.parentId) : undefined;
+        if (parent) parent.children.push(module);
+    });
+
+    const sortTree = (list: ModuleNode[]): ModuleNode[] => byOrderNo(list).map((module) => ({ ...module, children: sortTree(module.children) }));
+
+    const topLevelByType = new Map<string, ModuleNode[]>();
+    flat.forEach((module) => {
+        const isTopLevel = !module.parentId || !flat.has(module.parentId);
+        if (isTopLevel) {
+            const list = topLevelByType.get(module.moduleTypeId) || [];
+            list.push(module);
+            topLevelByType.set(module.moduleTypeId, list);
+        }
+    });
+
+    const matchedTypeIds = new Set(moduleTypes.map((type) => type.id));
+    const groups: ModuleTreeGroup[] = byOrderNo(moduleTypes).map((type) => ({
+        moduleTypeId: type.id,
+        moduleTypeName: type.name,
+        orderNo: type.orderNo,
+        modules: sortTree(topLevelByType.get(type.id) || []),
+    }));
+
+    const otherTopLevel: ModuleNode[] = [];
+    topLevelByType.forEach((list, typeId) => {
+        if (!matchedTypeIds.has(typeId)) otherTopLevel.push(...list);
+    });
+    if (otherTopLevel.length) {
+        groups.push({ moduleTypeId: '__other__', moduleTypeName: 'Other', orderNo: Number.MAX_SAFE_INTEGER, modules: sortTree(otherTopLevel) });
+    }
+
+    return groups.filter((group) => group.modules.length > 0);
+};
 
 // --- Module CRUD (SYSTEM_ADMINISTRATOR only) -------------------------------------------
 
@@ -163,22 +205,6 @@ const modulesSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Sidebar tree
-            .addCase(fetchModuleTree.pending, (state) => {
-                state.treeLoading = true;
-                state.treeError = null;
-            })
-            .addCase(fetchModuleTree.fulfilled, (state, action) => {
-                state.treeLoading = false;
-                state.treeLoaded = true;
-                state.tree = byOrderNo(action.payload);
-            })
-            .addCase(fetchModuleTree.rejected, (state, action) => {
-                state.treeLoading = false;
-                state.treeLoaded = true;
-                state.treeError = action.error.message || 'Unable to load the navigation menu';
-            })
-
             // Module list
             .addCase(fetchModules.pending, (state) => {
                 state.itemsLoading = true;

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchModuleTypes, createModuleType, updateModuleType, deleteModuleType, clearModulesError, ModuleType, ModuleTypePayload } from '@/store/slices/modules/modulesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
@@ -8,8 +7,10 @@ import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconRefresh from '@/components/Icon/IconRefresh';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
@@ -24,6 +25,8 @@ const ModuleTypesPage = () => {
     const [editing, setEditing] = useState<ModuleType | null>(null);
     const [viewOnly, setViewOnly] = useState(false);
     const [form, setForm] = useState<ModuleTypePayload>(emptyForm);
+    const [deleteTarget, setDeleteTarget] = useState<ModuleType | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         dispatch(fetchModuleTypes());
@@ -69,28 +72,23 @@ const ModuleTypesPage = () => {
         }
     };
 
-    const handleDelete = async (type: ModuleType) => {
-        if (!window.confirm(`Delete module type "${type.name}"? This cannot be undone.`)) return;
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await dispatch(deleteModuleType(type.id)).unwrap();
-            dispatch(showToast({ variant: 'success', message: `Module type "${type.name}" deleted successfully` }));
+            await dispatch(deleteModuleType(deleteTarget.id)).unwrap();
+            dispatch(showToast({ variant: 'success', message: `Module type "${deleteTarget.name}" deleted successfully` }));
+            setDeleteTarget(null);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to delete module type' }));
+        } finally {
+            setDeleting(false);
         }
     };
 
     return (
         <div>
-            <ul className="flex space-x-2 rtl:space-x-reverse">
-                <li>
-                    <Link href="/dashboard" className="text-primary hover:underline">
-                        Dashboard
-                    </Link>
-                </li>
-                <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                    <span>Module Types</span>
-                </li>
-            </ul>
+            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Module Types' }]} />
 
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -126,7 +124,7 @@ const ModuleTypesPage = () => {
                         {
                             header: 'Actions',
                             accessor: (row: ModuleType) => (
-                                <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => handleDelete(row)} label={`Actions for ${row.name}`} />
+                                <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
                             ),
                         },
                         { header: 'Name', accessor: 'name' },
@@ -195,6 +193,15 @@ const ModuleTypesPage = () => {
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmModal
+                isOpen={!!deleteTarget}
+                title="Delete Module Type"
+                message={`Delete module type "${deleteTarget?.name}"? This cannot be undone.`}
+                loading={deleting}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+            />
         </div>
     );
 };

@@ -3,17 +3,19 @@ import IconHorizontalDots from '@/components/Icon/IconHorizontalDots';
 import IconEye from '@/components/Icon/IconEye';
 import IconEdit from '@/components/Icon/IconEdit';
 import IconTrash from '@/components/Icon/IconTrash';
+import IconUsersGroup from '@/components/Icon/IconUsersGroup';
 
 interface RowActionsMenuProps {
     onView?: () => void;
     onEdit?: () => void;
+    onManageAccess?: () => void;
     onDelete?: () => void;
     label?: string;
 }
 
 // Single three-dot menu used in DataGrid "Actions" columns app-wide, replacing
-// separate inline icon buttons with a View/Edit/Delete dropdown.
-const RowActionsMenu = ({ onView, onEdit, onDelete, label = 'Row actions' }: RowActionsMenuProps) => {
+// separate inline icon buttons with a View/Edit/Manage Access/Delete dropdown.
+const RowActionsMenu = ({ onView, onEdit, onManageAccess, onDelete, label = 'Row actions' }: RowActionsMenuProps) => {
     return (
         <div className="dropdown flex justify-center">
             <Dropdown
@@ -40,6 +42,14 @@ const RowActionsMenu = ({ onView, onEdit, onDelete, label = 'Row actions' }: Row
                             <button type="button" onClick={onEdit}>
                                 <IconEdit className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
                                 Edit
+                            </button>
+                        </li>
+                    )}
+                    {onManageAccess && (
+                        <li>
+                            <button type="button" onClick={onManageAccess}>
+                                <IconUsersGroup className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                                Manage Access
                             </button>
                         </li>
                     )}

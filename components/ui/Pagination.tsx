@@ -16,10 +16,6 @@ const getPageNumbers = (currentPage: number, totalPages: number, siblingCount: n
 };
 
 const Pagination = ({ currentPage, totalPages, onPageChange, siblingCount = 1 }: PaginationProps) => {
-    if (totalPages <= 1) {
-        return null;
-    }
-
     const pages = getPageNumbers(currentPage, totalPages, siblingCount);
 
     return (

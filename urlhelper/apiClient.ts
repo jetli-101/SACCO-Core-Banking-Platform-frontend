@@ -99,4 +99,4 @@ export const apiGet = <T>(endpoint: string, options?: RequestOptions) => apiRequ
 export const apiPost = <T>(endpoint: string, body?: unknown, options?: RequestOptions) => apiRequest<T>(endpoint, { ...options, method: 'POST', body });
 export const apiPut = <T>(endpoint: string, body?: unknown, options?: RequestOptions) => apiRequest<T>(endpoint, { ...options, method: 'PUT', body });
 export const apiPatch = <T>(endpoint: string, body?: unknown, options?: RequestOptions) => apiRequest<T>(endpoint, { ...options, method: 'PATCH', body });
-export const apiDelete = <T>(endpoint: string, options?: RequestOptions) => apiRequest<T>(endpoint, { ...options, method: 'DELETE' });
+export const apiDelete = <T>(endpoint: string, body?: unknown, options?: RequestOptions) => apiRequest<T>(endpoint, { ...options, method: 'DELETE', body });
