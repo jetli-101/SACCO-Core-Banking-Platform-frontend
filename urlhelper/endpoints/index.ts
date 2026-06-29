@@ -5,3 +5,5 @@ export * from './auth';
 export * from './modules';
 export * from './roles';
 export * from './members';
+export * from './userGroups';
+export * from './users';

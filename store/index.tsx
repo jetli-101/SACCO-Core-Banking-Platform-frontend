@@ -5,6 +5,8 @@ import modulesSlice from './slices/modules/modulesSlice';
 import rolesSlice from './slices/roles/rolesSlice';
 import profileSlice from './slices/profile/profileSlice';
 import membersSlice from './slices/members/membersSlice';
+import userGroupsSlice from './slices/userGroups/userGroupsSlice';
+import usersSlice from './slices/users/usersSlice';
 import toastSlice from './slices/ui/toastSlice';
 
 const rootReducer = combineReducers({
@@ -14,6 +16,8 @@ const rootReducer = combineReducers({
     roles: rolesSlice,
     profile: profileSlice,
     members: membersSlice,
+    userGroups: userGroupsSlice,
+    users: usersSlice,
     toast: toastSlice,
 });
 
