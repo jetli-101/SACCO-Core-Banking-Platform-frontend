@@ -19,14 +19,20 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 const getToken = () => (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null);
 const getRefreshToken = () => (typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null);
 
+// Fired whenever the session is invalidated because a refresh attempt failed —
+// App.tsx listens for this to clear Redux auth state and bounce to /auth/login instead
+// of leaving the dashboard rendered with every request silently failing.
+export const SESSION_EXPIRED_EVENT = 'auth:session-expired';
+
 const clearStoredSession = () => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('authUser');
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 };
 
-// Coalesces concurrent 401s into a single /auth/refresh call rather than firing one per
+// Coalesces concurrent 401/403s into a single /auth/refresh call rather than firing one per
 // failed request.
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -62,8 +68,12 @@ const AUTH_ENDPOINTS_EXEMPT_FROM_REFRESH: string[] = [AUTH_ENDPOINTS.LOGIN, AUTH
 
 export async function apiRequest<T = unknown>(endpoint: string, options: RequestOptions = {}, isRetry = false): Promise<T> {
     const token = getToken();
+    // FormData (file uploads) must be sent as-is, with the browser setting its own
+    // multipart Content-Type (including the boundary) — never JSON.stringify it.
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(options.headers as Record<string, string> | undefined),
     };
     if (token) {
@@ -73,14 +83,14 @@ export async function apiRequest<T = unknown>(endpoint: string, options: Request
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
-        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        body: isFormData ? (options.body as FormData) : options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
 
     const contentType = response.headers.get('content-type') || '';
     const payload = contentType.includes('application/json') ? await response.json().catch(() => null) : await response.text();
 
     if (!response.ok) {
-        if (response.status === 401 && !isRetry && !AUTH_ENDPOINTS_EXEMPT_FROM_REFRESH.includes(endpoint)) {
+        if ((response.status === 401 || response.status === 403) && !isRetry && !AUTH_ENDPOINTS_EXEMPT_FROM_REFRESH.includes(endpoint)) {
             const newAccessToken = await refreshAccessToken();
             if (newAccessToken) {
                 return apiRequest<T>(endpoint, options, true);

@@ -3,7 +3,6 @@ import { toggleSidebar } from '@/store/themeConfigSlice';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import App from '../../App';
-import Footer from './Footer';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Portals from '../../components/Portals';
@@ -110,12 +109,9 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
                         {/* END TOP NAVBAR */}
 
                         {/* BEGIN CONTENT AREA */}
-                        <div className={`${animation} animate__animated p-6`}>{children}</div>
+                        <div className={`${animation} animate__animated p-3`}>{children}</div>
                         {/* END CONTENT AREA */}
 
-                        {/* BEGIN FOOTER */}
-                        <Footer />
-                        {/* END FOOTER */}
                         <Portals />
                     </div>
                 </div>

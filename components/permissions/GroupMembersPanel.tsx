@@ -5,6 +5,7 @@ import DataGrid from '@/components/ui/DataGrid';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
+import Spinner from '@/components/ui/Spinner';
 import IconUserPlus from '@/components/Icon/IconUserPlus';
 
 interface GroupMembersPanelProps {
@@ -38,18 +39,10 @@ const GroupMembersPanel = ({ members, allUsers, loading, saving, onAdd, onRemove
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <div>
-                    <h5 className="text-lg font-semibold">Assigned Members</h5>
-                    <p className="text-sm text-white-dark">{members.length} user(s) have this assignment</p>
-                </div>
-                <Button onClick={openAssign} disabled={availableUsers.length === 0}>
-                    <IconUserPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                    Assign Member
-                </Button>
-            </div>
-
             <DataGrid
+                panel={false}
+                title="Assigned Members"
+                count={members.length}
                 columns={[
                     {
                         header: 'Actions',
@@ -64,6 +57,12 @@ const GroupMembersPanel = ({ members, allUsers, loading, saving, onAdd, onRemove
                 searchPlaceholder="Search members..."
                 loading={loading}
                 emptyMessage="No members assigned yet"
+                toolbarActions={
+                    <Button size="sm" onClick={openAssign} disabled={availableUsers.length === 0}>
+                        <IconUserPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                        Assign Member
+                    </Button>
+                }
             />
 
             <Modal isOpen={assignOpen} onClose={() => setAssignOpen(false)} title="Assign Member">
@@ -85,6 +84,7 @@ const GroupMembersPanel = ({ members, allUsers, loading, saving, onAdd, onRemove
                             Cancel
                         </Button>
                         <Button type="submit" disabled={saving || !selectedUserId}>
+                            {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                             {saving ? 'Assigning…' : 'Assign'}
                         </Button>
                     </div>

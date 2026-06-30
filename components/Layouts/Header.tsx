@@ -5,7 +5,9 @@ import { useRouter } from 'next/router';
 import { IRootState } from '../../store';
 import { toggleSidebar } from '../../store/themeConfigSlice';
 import { logout } from '../../store/slices/auth/authSlice';
+import { resolveFileUrl } from '@/urlhelper';
 import Dropdown from '../Dropdown';
+import Avatar from '@/components/ui/Avatar';
 import IconMenu from '@/components/Icon/IconMenu';
 import IconXCircle from '@/components/Icon/IconXCircle';
 import IconInfoCircle from '@/components/Icon/IconInfoCircle';
@@ -146,12 +148,12 @@ const Header = () => {
                                 offset={[0, 8]}
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
                                 btnClassName="relative group block"
-                                button={<img className="h-9 w-9 rounded-full object-cover saturate-50 group-hover:saturate-100" src="/assets/images/user-profile.jpeg" alt="userProfile" />}
+                                button={<Avatar className="saturate-50 group-hover:saturate-100" src={resolveFileUrl(authUser?.avatarUrl)} name={authUser?.username} size="md" />}
                             >
                                 <ul className="w-[230px] !py-0 font-semibold text-dark dark:text-white-dark dark:text-white-light/90">
                                     <li>
                                         <div className="flex items-center px-4 py-4">
-                                            <img className="h-10 w-10 rounded-md object-cover" src="/assets/images/user-profile.jpeg" alt="userProfile" />
+                                            <Avatar src={resolveFileUrl(authUser?.avatarUrl)} name={authUser?.username} size="md" />
                                             <div className="truncate ltr:pl-4 rtl:pr-4">
                                                 <h4 className="text-base">{authUser?.username || 'My Account'}</h4>
                                                 <button type="button" className="text-black/60 hover:text-primary dark:text-dark-light/60 dark:hover:text-white">

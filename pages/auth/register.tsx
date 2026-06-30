@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import DateInput from '@/components/ui/DateInput';
 import Alert from '@/components/ui/Alert';
+import Spinner from '@/components/ui/Spinner';
 import IconEye from '@/components/Icon/IconEye';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { registerUser, clearAuthError, RegisterPayload } from '@/store/slices/auth/authSlice';
@@ -250,6 +251,7 @@ const Register = () => {
                             </Button>
                         ) : (
                             <Button type="submit" disabled={loading}>
+                                {loading && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                                 {loading ? 'Creating account…' : 'Create account'}
                             </Button>
                         )}

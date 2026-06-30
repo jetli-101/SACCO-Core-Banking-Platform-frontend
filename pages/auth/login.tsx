@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import BlankLayout from '@/components/Layouts/BlankLayout';
 import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
+import Spinner from '@/components/ui/Spinner';
 import IconEye from '@/components/Icon/IconEye';
 import IconMail from '@/components/Icon/IconMail';
 import IconLockDots from '@/components/Icon/IconLockDots';
@@ -125,6 +126,7 @@ const Login = () => {
                         </label>
 
                         <Button type="submit" size="lg" fullWidth disabled={loading}>
+                            {loading && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                             {loading ? 'SIGNING IN…' : 'SIGN IN'}
                         </Button>
                     </form>

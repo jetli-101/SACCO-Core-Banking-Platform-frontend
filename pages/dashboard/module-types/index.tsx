@@ -11,8 +11,8 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import Spinner from '@/components/ui/Spinner';
 import IconPlus from '@/components/Icon/IconPlus';
-import IconRefresh from '@/components/Icon/IconRefresh';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 
 const emptyForm: ModuleTypePayload = { name: '', textId: '', orderNo: 0, description: '' };
@@ -88,11 +88,11 @@ const ModuleTypesPage = () => {
 
     return (
         <div>
-            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Module Types' }]} />
+            <Breadcrumb />
 
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold">Module Types</h1>
+                    <h1 className="text-xl font-bold">Module Types</h1>
                     <p className="text-white-dark">Manage the top-level navigation groups that sidebar modules belong to</p>
                 </div>
                 <Button onClick={openCreate}>
@@ -101,51 +101,42 @@ const ModuleTypesPage = () => {
                 </Button>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-sm">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-sm">
                 <StatCard label="Total Module Types" value={moduleTypes.length} icon={<IconMenuPages className="h-4 w-4" />} />
             </div>
 
             {(error || moduleTypesError) && (
-                <div className="mt-5">
+                <div className="mt-3">
                     <Alert variant="danger" onClose={() => dispatch(clearModulesError())}>
                         {error || moduleTypesError}
                     </Alert>
                 </div>
             )}
 
-            <div className="panel mt-5">
-                <div className="mb-5">
-                    <h5 className="text-lg font-semibold">Module Type Records</h5>
-                    <p className="text-sm text-white-dark">View and manage all module type groups</p>
-                </div>
-
-                <DataGrid
-                    columns={[
-                        {
-                            header: 'Actions',
-                            accessor: (row: ModuleType) => (
-                                <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
-                            ),
-                        },
-                        { header: 'Name', accessor: 'name' },
-                        { header: 'Text ID', accessor: 'textId' },
-                        { header: 'Order No', accessor: 'orderNo' },
-                        { header: 'Description', accessor: (row: ModuleType) => row.description || '—' },
-                    ]}
-                    data={moduleTypes}
-                    rowKey={(row) => row.id}
-                    searchKeys={['name', 'textId', 'description']}
-                    searchPlaceholder="Search module types..."
-                    loading={moduleTypesLoading}
-                    emptyMessage="No module types yet"
-                    toolbarActions={
-                        <Button variant="outline-primary" size="sm" onClick={() => dispatch(fetchModuleTypes())}>
-                            <IconRefresh className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            Refresh
-                        </Button>
-                    }
-                />
-            </div>
+            <DataGrid
+                className="mt-3"
+                title="Module Type Records"
+                count={moduleTypes.length}
+                columns={[
+                    {
+                        header: 'Actions',
+                        accessor: (row: ModuleType) => (
+                            <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
+                        ),
+                    },
+                    { header: 'Name', accessor: 'name' },
+                    { header: 'Text ID', accessor: 'textId' },
+                    { header: 'Order No', accessor: 'orderNo' },
+                    { header: 'Description', accessor: (row: ModuleType) => row.description || '—' },
+                ]}
+                data={moduleTypes}
+                rowKey={(row) => row.id}
+                searchKeys={['name', 'textId', 'description']}
+                searchPlaceholder="Search module types..."
+                loading={moduleTypesLoading}
+                emptyMessage="No module types yet"
+                onRefresh={() => dispatch(fetchModuleTypes())}
+            />
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={viewOnly ? 'View Module Type' : editing ? 'Edit Module Type' : 'New Module Type'}>
                 <form onSubmit={submitForm} className="space-y-4">
@@ -186,6 +177,7 @@ const ModuleTypesPage = () => {
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={saving}>
+                                    {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                                     {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
                                 </Button>
                             </>

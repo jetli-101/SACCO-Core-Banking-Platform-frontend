@@ -13,7 +13,6 @@ import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import IconPlus from '@/components/Icon/IconPlus';
-import IconPrinter from '@/components/Icon/IconPrinter';
 import IconUsersGroup from '@/components/Icon/IconUsersGroup';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconUserPlus from '@/components/Icon/IconUserPlus';
@@ -71,77 +70,65 @@ const RolesPage = () => {
 
     return (
         <div>
-            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Configuration' }, { label: 'Roles' }]} />
+            <Breadcrumb />
 
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold">Roles</h1>
+                    <h1 className="text-xl font-bold">Roles</h1>
                     <p className="text-white-dark">Manage system roles configuration across your application</p>
                 </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <StatCard label="Total Roles" value={roles.length} icon={<IconUsersGroup className="h-4 w-4" />} />
                 <StatCard label="Total Assignments" value={totalAssignments} icon={<IconUsers className="h-4 w-4" />} />
                 <StatCard label="Avg Members/Role" value={avgMembersPerRole} icon={<IconUserPlus className="h-4 w-4" />} />
             </div>
 
             {(error || rolesError) && (
-                <div className="mt-5">
+                <div className="mt-3">
                     <Alert variant="danger" onClose={() => dispatch(clearRolesError())}>
                         {error || rolesError}
                     </Alert>
                 </div>
             )}
 
-            <div className="panel mt-5">
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                    <h5 className="text-lg font-semibold">
-                        System Roles <span className="text-white-dark">{roles.length}</span>
-                    </h5>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline-primary" size="sm" onClick={() => window.print()}>
-                            <IconPrinter className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            Print
-                        </Button>
-                        <Button onClick={openCreate}>
-                            <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            Add New Role
-                        </Button>
-                    </div>
-                </div>
-
-                <DataGrid
-                    columns={[
-                        {
-                            header: 'Actions',
-                            accessor: (row: Role) => (
-                                <RowActionsMenu
-                                    onView={() => router.push(`/dashboard/admin/roles/${row.id}`)}
-                                    onDelete={() => setDeleteTarget(row)}
-                                    label={`Actions for ${row.name}`}
-                                />
-                            ),
-                        },
-                        { header: 'Role Name', accessor: 'name' },
-                        { header: 'Description', accessor: (row: Role) => row.description || '—' },
-                        {
-                            header: 'Status',
-                            accessor: () => (
-                                <span className="badge flex w-fit items-center gap-1 bg-success-light text-success">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-success" /> Active
-                                </span>
-                            ),
-                        },
-                    ]}
-                    data={roles}
-                    rowKey={(row) => row.id}
-                    searchKeys={['name', 'description']}
-                    searchPlaceholder="Search roles..."
-                    loading={rolesLoading}
-                    emptyMessage="No roles yet"
-                />
-            </div>
+            <DataGrid
+                className="mt-3"
+                title="System Roles"
+                count={roles.length}
+                columns={[
+                    {
+                        header: 'Actions',
+                        accessor: (row: Role) => (
+                            <RowActionsMenu onView={() => router.push(`/dashboard/admin/roles/${row.id}`)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
+                        ),
+                    },
+                    { header: 'Role Name', accessor: 'name' },
+                    { header: 'Description', accessor: (row: Role) => row.description || '—' },
+                    {
+                        header: 'Status',
+                        accessor: () => (
+                            <span className="badge flex w-fit items-center gap-1 bg-success-light text-success">
+                                <span className="h-1.5 w-1.5 rounded-full bg-success" /> Active
+                            </span>
+                        ),
+                    },
+                ]}
+                data={roles}
+                rowKey={(row) => row.id}
+                searchKeys={['name', 'description']}
+                searchPlaceholder="Search roles..."
+                loading={rolesLoading}
+                emptyMessage="No roles yet"
+                onRefresh={() => dispatch(fetchRoles())}
+                toolbarActions={
+                    <Button size="sm" onClick={openCreate}>
+                        <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                        Add New Role
+                    </Button>
+                }
+            />
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="New Role">
                 <form onSubmit={submitForm} className="space-y-4">

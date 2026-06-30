@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMyProfile, updateMyProfile, clearProfileError, UpdateMemberPayload } from '@/store/slices/profile/profileSlice';
+import { fetchMyAccount, updateMyAccount, uploadMyPhoto, UpdateAccountPayload } from '@/store/slices/auth/authSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Alert from '@/components/ui/Alert';
-import IconUser from '@/components/Icon/IconUser';
+import Spinner from '@/components/ui/Spinner';
+import ProfilePhotoUpload from '@/components/ui/ProfilePhotoUpload';
 
 const emptyForm: UpdateMemberPayload = {
     occupation: '',
@@ -18,16 +20,26 @@ const emptyForm: UpdateMemberPayload = {
     physicalAddress: '',
 };
 
+// The working page — photo upload and editing happen right here, inline, no redirect.
+// The full read-only record of everything captured at registration lives on the
+// standalone /dashboard/personal-information page instead.
 const ProfilePage = () => {
     const dispatch = useAppDispatch();
     const { profile, loading, saving, error } = useAppSelector((state) => state.profile);
     const authUser = useAppSelector((state) => state.auth.user);
     const isMember = !!authUser?.roles?.includes('ROLE_MEMBER');
 
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [form, setForm] = useState<UpdateMemberPayload>(emptyForm);
+    const [accountForm, setAccountForm] = useState<UpdateAccountPayload>({ username: '', phone: '' });
+    const [savingAccount, setSavingAccount] = useState(false);
 
     useEffect(() => {
-        if (isMember) dispatch(fetchMyProfile());
+        if (isMember) {
+            dispatch(fetchMyProfile());
+        } else {
+            dispatch(fetchMyAccount());
+        }
     }, [dispatch, isMember]);
 
     useEffect(() => {
@@ -43,6 +55,25 @@ const ProfilePage = () => {
         });
     }, [profile]);
 
+    useEffect(() => {
+        if (!authUser || isMember) return;
+        setAccountForm({ username: authUser.username, phone: authUser.phone || '' });
+    }, [authUser, isMember]);
+
+    const handlePhotoUpload = async (file: File) => {
+        setUploadingPhoto(true);
+        try {
+            await dispatch(uploadMyPhoto(file)).unwrap();
+            dispatch(showToast({ variant: 'success', message: 'Profile photo updated' }));
+        } catch (err) {
+            dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to upload photo' }));
+        } finally {
+            setUploadingPhoto(false);
+        }
+    };
+
+    const handlePhotoError = (message: string) => dispatch(showToast({ variant: 'danger', message }));
+
     const submitForm = async (event: React.FormEvent) => {
         event.preventDefault();
         try {
@@ -53,27 +84,39 @@ const ProfilePage = () => {
         }
     };
 
+    const submitAccountForm = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setSavingAccount(true);
+        try {
+            await dispatch(updateMyAccount(accountForm)).unwrap();
+            dispatch(showToast({ variant: 'success', message: 'Account updated successfully' }));
+        } catch (err) {
+            dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to update account' }));
+        } finally {
+            setSavingAccount(false);
+        }
+    };
+
     const fullName = profile ? [profile.firstName, profile.middleName, profile.lastName].filter(Boolean).join(' ') : '';
 
     return (
         <div>
-            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Profile' }]} />
+            <Breadcrumb />
 
-            <div className="mt-4">
-                <h1 className="text-2xl font-bold">My Profile</h1>
-                <p className="text-white-dark">View your membership details and update your contact information</p>
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                    <h1 className="text-xl font-bold">My Profile</h1>
+                    <p className="text-white-dark">{isMember ? 'Update your contact and employment details' : 'Update your account details'}</p>
+                </div>
+                <Button variant="outline-primary" size="sm" href="/dashboard/personal-information">
+                    View Full Registration Details
+                </Button>
             </div>
 
-            {!isMember ? (
-                <div className="mt-5">
-                    <Alert variant="info">
-                        Staff accounts ({authUser?.roles?.join(', ') || 'this role'}) don&apos;t have a SACCO member profile — this page only applies to member accounts.
-                    </Alert>
-                </div>
-            ) : (
+            {isMember ? (
                 <>
                     {error && (
-                        <div className="mt-5">
+                        <div className="mt-3">
                             <Alert variant="danger" onClose={() => dispatch(clearProfileError())}>
                                 {error}
                             </Alert>
@@ -81,58 +124,25 @@ const ProfilePage = () => {
                     )}
 
                     {loading && !profile ? (
-                        <div className="panel mt-5">Loading profile…</div>
+                        <div className="panel mt-3">Loading profile…</div>
                     ) : profile ? (
-                        <div className="mt-5 grid gap-5 lg:grid-cols-3">
-                            <div className="panel lg:col-span-1">
-                                <div className="flex flex-col items-center text-center">
-                                    <div className="grid h-20 w-20 place-content-center rounded-full bg-primary-light text-primary dark:bg-primary dark:text-primary-light">
-                                        <IconUser className="h-10 w-10" />
-                                    </div>
-                                    <h5 className="mt-4 text-lg font-semibold">{fullName}</h5>
+                        <div className="mt-3 panel">
+                            <div className="grid gap-6 sm:grid-cols-[auto_1fr]">
+                                <ProfilePhotoUpload photoUrl={profile.user.avatarUrl} name={fullName} uploading={uploadingPhoto} onUpload={handlePhotoUpload} onError={handlePhotoError} />
+
+                                <div>
+                                    <h5 className="text-lg font-semibold">{fullName}</h5>
                                     <p className="text-white-dark">{profile.user.email}</p>
-                                    {profile.memberNumber && <span className="badge mt-2 bg-primary/80">Member No. {profile.memberNumber}</span>}
-                                </div>
-
-                                <div className="mt-5 space-y-3 border-t border-white-light pt-5 dark:border-white/10">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-white-dark">National ID</span>
-                                        <span className="font-semibold">{profile.nationalId}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-white-dark">Date of Birth</span>
-                                        <span className="font-semibold">{profile.dateOfBirth || '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-white-dark">Gender</span>
-                                        <span className="font-semibold">{profile.gender || '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-white-dark">KRA PIN</span>
-                                        <span className="font-semibold">{profile.kraPin || '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-white-dark">Phone</span>
-                                        <span className="font-semibold">{profile.user.phone || '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-white-dark">Status</span>
-                                        <span className="font-semibold">{profile.user.status || '—'}</span>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {profile.memberNumber && <span className="badge bg-primary/80">Member No. {profile.memberNumber}</span>}
+                                        {profile.user.status && <span className="badge bg-success/80">{profile.user.status}</span>}
                                     </div>
                                 </div>
-
-                                <p className="mt-4 text-xs text-white-dark">
-                                    Identity details above are KYC data set at registration. Contact support if any of it needs correcting.
-                                </p>
                             </div>
 
-                            <div className="panel lg:col-span-2">
-                                <div className="mb-5">
-                                    <h5 className="text-lg font-semibold">Contact &amp; Employment Details</h5>
-                                    <p className="text-sm text-white-dark">Keep this information up to date — it&apos;s used for correspondence and statements</p>
-                                </div>
-
-                                <form onSubmit={submitForm} className="grid gap-4 sm:grid-cols-2">
+                            <div className="mt-5 border-t border-white-light pt-5 dark:border-white/10">
+                                <h5 className="mb-3 text-lg font-semibold">Contact &amp; Employment Details</h5>
+                                <form onSubmit={submitForm} className="grid gap-3 sm:grid-cols-2">
                                     <Input
                                         id="occupation"
                                         label="Occupation *"
@@ -141,7 +151,13 @@ const ProfilePage = () => {
                                         required
                                     />
                                     <Input id="employer" label="Employer" value={form.employer} onChange={(e) => setForm((prev) => ({ ...prev, employer: e.target.value }))} />
-                                    <Input id="county" label="County" value={form.county} onChange={(e) => setForm((prev) => ({ ...prev, county: e.target.value }))} placeholder="e.g. Nairobi" />
+                                    <Input
+                                        id="county"
+                                        label="County"
+                                        value={form.county}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, county: e.target.value }))}
+                                        placeholder="e.g. Nairobi"
+                                    />
                                     <Input
                                         id="constituency"
                                         label="Constituency *"
@@ -168,38 +184,67 @@ const ProfilePage = () => {
 
                                     <div className="flex items-center justify-end pt-2 sm:col-span-2">
                                         <Button type="submit" disabled={saving}>
+                                            {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                                             {saving ? 'Saving…' : 'Save Changes'}
                                         </Button>
                                     </div>
                                 </form>
-
-                                {profile.nextOfKin && (
-                                    <div className="mt-6 border-t border-white-light pt-5 dark:border-white/10">
-                                        <h5 className="text-lg font-semibold">Next of Kin</h5>
-                                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                                            <div>
-                                                <span className="text-white-dark">Name</span>
-                                                <p className="font-semibold">{profile.nextOfKin.name}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-white-dark">Relationship</span>
-                                                <p className="font-semibold">{profile.nextOfKin.relationship}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-white-dark">Phone</span>
-                                                <p className="font-semibold">{profile.nextOfKin.phone}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-white-dark">ID Number</span>
-                                                <p className="font-semibold">{profile.nextOfKin.idNumber}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     ) : null}
                 </>
+            ) : (
+                <div className="mt-3 panel">
+                    {!authUser ? (
+                        <div>Loading profile…</div>
+                    ) : (
+                        <>
+                            <div className="grid gap-6 sm:grid-cols-[auto_1fr]">
+                                <ProfilePhotoUpload photoUrl={authUser.avatarUrl} name={authUser.username} uploading={uploadingPhoto} onUpload={handlePhotoUpload} onError={handlePhotoError} />
+
+                                <div>
+                                    <h5 className="text-lg font-semibold">{authUser.username}</h5>
+                                    <p className="text-white-dark">{authUser.email}</p>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {authUser.roles?.map((role) => (
+                                            <span key={role} className="badge bg-primary/80">
+                                                {role}
+                                            </span>
+                                        ))}
+                                        {authUser.status && <span className="badge bg-success/80">{authUser.status}</span>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 border-t border-white-light pt-5 dark:border-white/10">
+                                <h5 className="mb-3 text-lg font-semibold">Account Details</h5>
+                                <form onSubmit={submitAccountForm} className="grid gap-3 sm:grid-cols-2">
+                                    <Input
+                                        id="username"
+                                        label="Username *"
+                                        value={accountForm.username}
+                                        onChange={(e) => setAccountForm((prev) => ({ ...prev, username: e.target.value }))}
+                                        required
+                                    />
+                                    <Input
+                                        id="phone"
+                                        label="Phone"
+                                        value={accountForm.phone}
+                                        onChange={(e) => setAccountForm((prev) => ({ ...prev, phone: e.target.value }))}
+                                        placeholder="e.g. 0712345678"
+                                    />
+
+                                    <div className="flex items-center justify-end pt-2 sm:col-span-2">
+                                        <Button type="submit" disabled={savingAccount}>
+                                            {savingAccount && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
+                                            {savingAccount ? 'Saving…' : 'Save Changes'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
         </div>
     );

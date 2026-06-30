@@ -5,6 +5,7 @@ import BlankLayout from '@/components/Layouts/BlankLayout';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Alert from '@/components/ui/Alert';
+import Spinner from '@/components/ui/Spinner';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { forgotPassword, clearAuthError } from '@/store/slices/auth/authSlice';
 
@@ -58,6 +59,7 @@ const ForgotPassword = () => {
                     />
 
                     <Button type="submit" size="lg" fullWidth disabled={loading}>
+                        {loading && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                         {loading ? 'Sending code…' : 'Send reset code'}
                     </Button>
                 </form>

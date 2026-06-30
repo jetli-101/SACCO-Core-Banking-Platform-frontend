@@ -1,175 +1,89 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMembers, clearMembersError } from '@/store/slices/members/membersSlice';
 import { MemberProfile } from '@/store/slices/profile/profileSlice';
 import DataGrid from '@/components/ui/DataGrid';
 import StatCard from '@/components/ui/StatCard';
-import Button from '@/components/ui/Button';
-import Modal from '@/components/ui/Modal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-import IconRefresh from '@/components/Icon/IconRefresh';
 import IconUsers from '@/components/Icon/IconUsers';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
+import IconClock from '@/components/Icon/IconClock';
+import IconUserPlus from '@/components/Icon/IconUserPlus';
 
 const MemberDirectoryPage = () => {
     const dispatch = useAppDispatch();
+    const router = useRouter();
     const { members, loading, error } = useAppSelector((state) => state.members);
-
-    const [viewing, setViewing] = useState<MemberProfile | null>(null);
 
     useEffect(() => {
         dispatch(fetchMembers());
     }, [dispatch]);
 
-    const fullName = (member: MemberProfile) => [member.firstName, member.middleName, member.lastName].filter(Boolean).join(' ');
+    const activeCount = members.filter((member) => member.user.status === 'ACTIVE').length;
+    const pendingCount = members.filter((member) => member.user.status === 'PENDING').length;
+    const femaleCount = members.filter((member) => member.gender === 'FEMALE').length;
+    const femalePct = members.length ? Math.round((femaleCount / members.length) * 100) : 0;
 
     return (
         <div>
-            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administration' }, { label: 'Member Directory' }]} />
+            <Breadcrumb />
 
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold">Member Directory</h1>
+                    <h1 className="text-xl font-bold">Members</h1>
                     <p className="text-white-dark">Every member registered under your Sacco</p>
                 </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-sm">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard label="Total Members" value={members.length} icon={<IconUsers className="h-4 w-4" />} />
+                <StatCard label="Active" value={activeCount} icon={<IconCircleCheck className="h-4 w-4" />} />
+                <StatCard label="Pending Approval" value={pendingCount} icon={<IconClock className="h-4 w-4" />} />
+                <StatCard label="Female Members" value={`${femalePct}%`} icon={<IconUserPlus className="h-4 w-4" />} />
             </div>
 
             {error && (
-                <div className="mt-5">
+                <div className="mt-3">
                     <Alert variant="danger" onClose={() => dispatch(clearMembersError())}>
                         {error}
                     </Alert>
                 </div>
             )}
 
-            <div className="panel mt-5">
-                <div className="mb-5">
-                    <h5 className="text-lg font-semibold">Members</h5>
-                    <p className="text-sm text-white-dark">View every member&lsquo;s profile and account status</p>
-                </div>
-
-                <DataGrid
-                    columns={[
-                        {
-                            header: 'Actions',
-                            accessor: (row: MemberProfile) => <RowActionsMenu onView={() => setViewing(row)} label={`Actions for ${fullName(row)}`} />,
-                        },
-                        { header: 'Member No.', accessor: (row: MemberProfile) => row.memberNumber || '—' },
-                        { header: 'Name', accessor: (row: MemberProfile) => fullName(row) },
-                        { header: 'National ID', accessor: 'nationalId' },
-                        { header: 'Email', accessor: (row: MemberProfile) => row.user.email },
-                        { header: 'Phone', accessor: (row: MemberProfile) => row.user.phone || '—' },
-                        { header: 'County', accessor: (row: MemberProfile) => row.county || '—' },
-                        { header: 'Status', accessor: (row: MemberProfile) => row.user.status || '—' },
-                    ]}
-                    data={members}
-                    rowKey={(row) => row.id}
-                    searchKeys={['memberNumber', 'firstName', 'lastName', 'nationalId']}
-                    searchPlaceholder="Search members..."
-                    loading={loading}
-                    emptyMessage="No members yet"
-                    toolbarActions={
-                        <Button variant="outline-primary" size="sm" onClick={() => dispatch(fetchMembers())}>
-                            <IconRefresh className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            Refresh
-                        </Button>
-                    }
-                />
-            </div>
-
-            <Modal isOpen={!!viewing} onClose={() => setViewing(null)} title="Member Profile" size="lg">
-                {viewing && (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <span className="text-sm text-white-dark">Full Name</span>
-                            <p className="font-semibold">{fullName(viewing)}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Member Number</span>
-                            <p className="font-semibold">{viewing.memberNumber || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">National ID</span>
-                            <p className="font-semibold">{viewing.nationalId}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Date of Birth</span>
-                            <p className="font-semibold">{viewing.dateOfBirth || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Gender</span>
-                            <p className="font-semibold">{viewing.gender || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">KRA PIN</span>
-                            <p className="font-semibold">{viewing.kraPin || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Occupation</span>
-                            <p className="font-semibold">{viewing.occupation || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Employer</span>
-                            <p className="font-semibold">{viewing.employer || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">County / Constituency / Ward</span>
-                            <p className="font-semibold">{[viewing.county, viewing.constituency, viewing.ward].filter(Boolean).join(' / ') || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Physical Address</span>
-                            <p className="font-semibold">{viewing.physicalAddress || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Email</span>
-                            <p className="font-semibold">{viewing.user.email}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Phone</span>
-                            <p className="font-semibold">{viewing.user.phone || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Account Status</span>
-                            <p className="font-semibold">{viewing.user.status || '—'}</p>
-                        </div>
-                        <div>
-                            <span className="text-sm text-white-dark">Roles</span>
-                            <p className="font-semibold">{viewing.user.roles?.length ? viewing.user.roles.join(', ') : '—'}</p>
-                        </div>
-
-                        {viewing.nextOfKin && (
-                            <div className="border-t border-white-light pt-4 sm:col-span-2 dark:border-white/10">
-                                <h6 className="font-semibold">Next of Kin</h6>
-                                <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                                    <p>
-                                        <span className="text-white-dark">Name:</span> {viewing.nextOfKin.name}
-                                    </p>
-                                    <p>
-                                        <span className="text-white-dark">Relationship:</span> {viewing.nextOfKin.relationship}
-                                    </p>
-                                    <p>
-                                        <span className="text-white-dark">Phone:</span> {viewing.nextOfKin.phone}
-                                    </p>
-                                    <p>
-                                        <span className="text-white-dark">ID Number:</span> {viewing.nextOfKin.idNumber}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex items-center justify-end pt-2 sm:col-span-2">
-                            <Button type="button" variant="outline-primary" onClick={() => setViewing(null)}>
-                                Close
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </Modal>
+            <DataGrid
+                className="mt-3"
+                title="Members"
+                count={members.length}
+                columns={[
+                    {
+                        header: 'Actions',
+                        accessor: (row: MemberProfile) => (
+                            <RowActionsMenu
+                                onView={() => router.push(`/dashboard/admin/member-directory/${row.id}`)}
+                                label={`Actions for ${[row.firstName, row.lastName].filter(Boolean).join(' ')}`}
+                            />
+                        ),
+                    },
+                    { header: 'Member No.', accessor: (row: MemberProfile) => row.memberNumber || '—' },
+                    { header: 'First Name', accessor: 'firstName' },
+                    { header: 'Middle Name', accessor: (row: MemberProfile) => row.middleName || '—' },
+                    { header: 'Last Name', accessor: 'lastName' },
+                    { header: 'National ID', accessor: 'nationalId' },
+                    { header: 'Date of Birth', accessor: (row: MemberProfile) => row.dateOfBirth || '—' },
+                    { header: 'Email', accessor: (row: MemberProfile) => row.user.email },
+                    { header: 'Status', accessor: (row: MemberProfile) => row.user.status || '—' },
+                ]}
+                data={members}
+                rowKey={(row) => row.id}
+                searchKeys={['memberNumber', 'firstName', 'lastName', 'nationalId']}
+                searchPlaceholder="Search members..."
+                loading={loading}
+                emptyMessage="No members yet"
+                onRefresh={() => dispatch(fetchMembers())}
+            />
         </div>
     );
 };

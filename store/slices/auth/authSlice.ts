@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { apiPost, AUTH_ENDPOINTS } from '../../../urlhelper';
+import { apiGet, apiPost, apiPut, AUTH_ENDPOINTS, USER_ENDPOINTS } from '../../../urlhelper';
 
 // Matches UserResponse from the backend's AuthController/UserController exactly.
 export interface AuthUser {
@@ -11,6 +11,7 @@ export interface AuthUser {
     phone?: string;
     roles: string[];
     status?: string;
+    avatarUrl?: string;
     lastLoginAt?: string;
     createdAt?: string;
 }
@@ -90,6 +91,10 @@ const clearSession = () => {
     localStorage.removeItem('authUser');
 };
 
+const persistUser = (user: AuthUser) => {
+    localStorage.setItem('authUser', JSON.stringify(user));
+};
+
 export const loginUser = createAsyncThunk('auth/login', async (credentials: { email: string; password: string }) => {
     const envelope = await apiPost<BackendEnvelope<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, credentials);
     persistSession(envelope.data.accessToken, envelope.data.refreshToken, envelope.data.user);
@@ -131,6 +136,32 @@ export const forgotPassword = createAsyncThunk('auth/forgotPassword', async (pay
 export const resetPassword = createAsyncThunk('auth/resetPassword', async (payload: { email: string; code: string; password: string }) => {
     await apiPost(AUTH_ENDPOINTS.RESET_PASSWORD, payload);
     return payload.email;
+});
+
+// Refreshes the logged-in account from the backend — used by the profile page for
+// staff/admin accounts, which have no Member profile to fetch instead.
+export const fetchMyAccount = createAsyncThunk('auth/fetchMyAccount', async () => {
+    const envelope = await apiGet<BackendEnvelope<AuthUser>>(USER_ENDPOINTS.ME);
+    return envelope.data;
+});
+
+// Matches UpdateUserRequest on the backend — the only self-editable fields on a
+// staff/admin account (no Member profile, so no contact/employment form to fill in).
+export interface UpdateAccountPayload {
+    username: string;
+    phone?: string;
+}
+
+export const updateMyAccount = createAsyncThunk('auth/updateMyAccount', async (payload: UpdateAccountPayload) => {
+    const envelope = await apiPut<BackendEnvelope<AuthUser>>(USER_ENDPOINTS.ME, payload);
+    return envelope.data;
+});
+
+export const uploadMyPhoto = createAsyncThunk('auth/uploadMyPhoto', async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const envelope = await apiPost<BackendEnvelope<AuthUser>>(USER_ENDPOINTS.ME_PHOTO, formData);
+    return envelope.data;
 });
 
 const authSlice = createSlice({
@@ -222,6 +253,18 @@ const authSlice = createSlice({
             })
             .addCase(resendOtp.rejected, (state, action) => {
                 state.error = action.error.message || 'Unable to resend code';
+            })
+            .addCase(fetchMyAccount.fulfilled, (state, action) => {
+                state.user = action.payload;
+                persistUser(action.payload);
+            })
+            .addCase(updateMyAccount.fulfilled, (state, action) => {
+                state.user = action.payload;
+                persistUser(action.payload);
+            })
+            .addCase(uploadMyPhoto.fulfilled, (state, action) => {
+                state.user = action.payload;
+                persistUser(action.payload);
             });
     },
 });

@@ -8,6 +8,7 @@ import { showToast } from '@/store/slices/ui/toastSlice';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Tabs from '@/components/ui/Tabs';
 import ModulePermissionsAccordion from '@/components/permissions/ModulePermissionsAccordion';
@@ -111,19 +112,11 @@ const RoleDetailPage = () => {
 
     return (
         <div>
-            <Breadcrumb
-                items={[
-                    { label: 'Dashboard', href: '/dashboard' },
-                    { label: 'Configuration' },
-                    { label: 'Roles', href: '/dashboard/admin/roles' },
-                    { label: role?.name || '…' },
-                    { label: 'Edit' },
-                ]}
-            />
+            <Breadcrumb trailingLabel={role?.name} />
 
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold">
+                    <h1 className="text-xl font-bold">
                         Role: <span className="text-primary">{role?.name || '…'}</span>
                     </h1>
                     <p className="text-white-dark">Edit and manage role details, permissions, and members</p>
@@ -135,12 +128,12 @@ const RoleDetailPage = () => {
             </div>
 
             {error && (
-                <div className="mt-5">
+                <div className="mt-3">
                     <Alert variant="danger">{error}</Alert>
                 </div>
             )}
 
-            <div className="panel mt-5">
+            <div className="panel mt-3">
                 <Tabs items={tabItems} active={tab} onChange={(key) => setTab(key as TabKey)} />
 
                 {tab === 'details' && (
@@ -149,6 +142,7 @@ const RoleDetailPage = () => {
                         <Input id="description" label="Description" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
                         <div className="flex justify-end pt-2">
                             <Button type="submit" disabled={saving}>
+                                {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                                 {saving ? 'Saving…' : 'Save Changes'}
                             </Button>
                         </div>

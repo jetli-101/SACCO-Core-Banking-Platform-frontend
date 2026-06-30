@@ -11,6 +11,7 @@ export interface ProfileUser {
     phone?: string;
     roles: string[];
     status?: string;
+    avatarUrl?: string;
     lastLoginAt?: string;
     createdAt?: string;
 }

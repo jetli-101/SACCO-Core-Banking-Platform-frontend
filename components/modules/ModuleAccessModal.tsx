@@ -4,6 +4,7 @@ import { fetchRoles, fetchModuleRoles, grantModuleToRoles, revokeModuleFromRoles
 import { showToast } from '@/store/slices/ui/toastSlice';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import Spinner from '@/components/ui/Spinner';
 
 interface ModuleAccessModalProps {
     isOpen: boolean;
@@ -92,6 +93,7 @@ const ModuleAccessModal = ({ isOpen, moduleId, moduleName, onClose }: ModuleAcce
                     Cancel
                 </Button>
                 <Button type="button" onClick={handleSave} disabled={saving || loading}>
+                    {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                     {saving ? 'Saving…' : 'Save Access'}
                 </Button>
             </div>

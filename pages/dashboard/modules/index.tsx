@@ -14,9 +14,9 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import Spinner from '@/components/ui/Spinner';
 import ModuleAccessModal from '@/components/modules/ModuleAccessModal';
 import IconPlus from '@/components/Icon/IconPlus';
-import IconRefresh from '@/components/Icon/IconRefresh';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 import IconLayoutGrid from '@/components/Icon/IconLayoutGrid';
 import IconBox from '@/components/Icon/IconBox';
@@ -121,11 +121,11 @@ const ModulesPage = () => {
 
     return (
         <div>
-            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Modules' }]} />
+            <Breadcrumb />
 
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold">Modules</h1>
+                    <h1 className="text-xl font-bold">Modules</h1>
                     <p className="text-white-dark">Manage the sidebar menu items members and staff see, grouped by module type</p>
                 </div>
                 <Button onClick={openCreate} disabled={moduleTypes.length === 0}>
@@ -135,7 +135,7 @@ const ModulesPage = () => {
             </div>
 
             {moduleTypes.length === 0 && !itemsLoading && (
-                <div className="mt-4">
+                <div className="mt-3">
                     <Alert variant="warning">
                         No module types exist yet.{' '}
                         <Link href="/dashboard/module-types" className="font-semibold underline">
@@ -146,76 +146,54 @@ const ModulesPage = () => {
                 </div>
             )}
 
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <StatCard label="Total Modules" value={stats.total} icon={<IconLayoutGrid className="h-4 w-4" />} />
                 <StatCard label="Top-level Modules" value={stats.topLevel} helperText="No parent module" icon={<IconMenuPages className="h-4 w-4" />} />
                 <StatCard label="Module Types Used" value={stats.typesUsed} icon={<IconBox className="h-4 w-4" />} />
             </div>
 
             {(error || itemsError) && (
-                <div className="mt-5">
+                <div className="mt-3">
                     <Alert variant="danger" onClose={() => dispatch(clearModulesError())}>
                         {error || itemsError}
                     </Alert>
                 </div>
             )}
 
-            <div className="panel mt-5">
-                <div className="mb-5">
-                    <h5 className="text-lg font-semibold">Module Records</h5>
-                    <p className="text-sm text-white-dark">View and manage all sidebar modules</p>
-                </div>
-
-                <DataGrid
-                    columns={[
-                        {
-                            header: 'Actions',
-                            accessor: (row: ModuleNode) => (
-                                <RowActionsMenu
-                                    onView={() => openView(row)}
-                                    onEdit={() => openEdit(row)}
-                                    onManageAccess={() => setAccessTarget({ id: row.id, name: row.name })}
-                                    onDelete={() => setDeleteTarget(row)}
-                                    label={`Actions for ${row.name}`}
-                                />
-                            ),
-                        },
-                        {
-                            header: 'Name',
-                            accessor: (row: ModuleNode) => (
-                                <span style={{ paddingLeft: `${(depthById.get(row.id) || 0) * 20}px` }}>
-                                    {(depthById.get(row.id) || 0) > 0 && <span className="text-white-dark">↳ </span>}
-                                    {row.name}
-                                </span>
-                            ),
-                        },
-                        { header: 'Text ID', accessor: 'textId' },
-                        { header: 'Module Type', accessor: (row: ModuleNode) => moduleTypeName(row.moduleTypeId) },
-                        { header: 'Parent', accessor: (row: ModuleNode) => moduleName(row.parentId) },
-                        { header: 'URL Path', accessor: (row: ModuleNode) => row.urlPath || '—' },
-                        { header: 'Order No', accessor: 'orderNo' },
-                    ]}
-                    data={orderedModules}
-                    rowKey={(row) => row.id}
-                    searchKeys={['name', 'textId', 'urlPath']}
-                    searchPlaceholder="Search modules..."
-                    loading={itemsLoading}
-                    emptyMessage="No modules yet"
-                    toolbarActions={
-                        <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => {
-                                dispatch(fetchModules());
-                                dispatch(fetchModuleTypes());
-                            }}
-                        >
-                            <IconRefresh className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            Refresh
-                        </Button>
-                    }
-                />
-            </div>
+            <DataGrid
+                className="mt-3"
+                title="Module Records"
+                count={orderedModules.length}
+                columns={[
+                    {
+                        header: 'Actions',
+                        accessor: (row: ModuleNode) => (
+                            <RowActionsMenu onView={() => openView(row)} onEdit={() => openEdit(row)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
+                        ),
+                    },
+                    {
+                        header: 'Name',
+                        accessor: (row: ModuleNode) => (
+                            <span style={{ paddingLeft: `${(depthById.get(row.id) || 0) * 20}px` }}>
+                                {(depthById.get(row.id) || 0) > 0 && <span className="text-white-dark">↳ </span>}
+                                {row.name}
+                            </span>
+                        ),
+                    },
+                    { header: 'Text ID', accessor: 'textId' },
+                    { header: 'Module Type', accessor: (row: ModuleNode) => moduleTypeName(row.moduleTypeId) },
+                    { header: 'Parent', accessor: (row: ModuleNode) => moduleName(row.parentId) },
+                    { header: 'URL Path', accessor: (row: ModuleNode) => row.urlPath || '—' },
+                    { header: 'Order No', accessor: 'orderNo' },
+                ]}
+                data={orderedModules}
+                rowKey={(row) => row.id}
+                searchKeys={['name', 'textId', 'urlPath']}
+                searchPlaceholder="Search modules..."
+                loading={itemsLoading}
+                emptyMessage="No modules yet"
+                onRefresh={() => Promise.all([dispatch(fetchModules()), dispatch(fetchModuleTypes())])}
+            />
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={viewOnly ? 'View Module' : editing ? 'Edit Module' : 'New Module'} size="lg">
                 <form onSubmit={submitForm} className="grid gap-4 sm:grid-cols-2">
@@ -318,6 +296,7 @@ const ModulesPage = () => {
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={saving}>
+                                    {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                                     {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
                                 </Button>
                             </>
