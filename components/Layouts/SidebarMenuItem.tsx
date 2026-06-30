@@ -10,13 +10,17 @@ interface SidebarMenuItemProps {
     collapsed: boolean;
     depth?: number;
     onExpandSidebar?: () => void;
+    isOpen: boolean;
+    onToggle: () => void;
 }
 
 // Renders one node from the backend's module tree. Modules are self-referencing
 // (parent/children) to an arbitrary depth, so this renders itself recursively rather
-// than assuming a fixed two-level menu.
-const SidebarMenuItem = ({ module, collapsed, depth = 0, onExpandSidebar }: SidebarMenuItemProps) => {
-    const [expanded, setExpanded] = useState(false);
+// than assuming a fixed two-level menu. Whether this item is expanded is controlled by
+// the parent (accordion behavior — opening one sibling closes the others); this
+// component only owns which of its OWN children is currently open.
+const SidebarMenuItem = ({ module, collapsed, depth = 0, onExpandSidebar, isOpen, onToggle }: SidebarMenuItemProps) => {
+    const [openChildId, setOpenChildId] = useState<string | null>(null);
     const Icon = getModuleIcon(module.icon);
     const hasChildren = module.children && module.children.length > 0;
     // The CSS already indents one level (.sub-menu li a gets px-9); only nudge further for depth 2+.
@@ -44,35 +48,40 @@ const SidebarMenuItem = ({ module, collapsed, depth = 0, onExpandSidebar }: Side
         <div className="menu nav-item">
             <button
                 type="button"
-                className={`nav-link group w-full ${collapsed ? 'justify-center' : ''} ${expanded ? '!bg-primary-light dark:!bg-primary/10' : ''}`}
+                className={`nav-link group w-full ${collapsed ? 'justify-center' : ''} ${isOpen ? '!bg-primary-light dark:!bg-primary/10' : ''}`}
                 style={indent}
-                onClick={() => (collapsed ? onExpandSidebar?.() : setExpanded((value) => !value))}
+                onClick={() => (collapsed ? onExpandSidebar?.() : onToggle())}
                 title={collapsed ? module.name : undefined}
             >
                 <div className="flex items-center">
-                    {depth === 0 && <Icon className={`shrink-0 group-hover:!text-primary ${expanded ? '!text-primary' : ''}`} />}
+                    {depth === 0 && <Icon className={`shrink-0 group-hover:!text-primary ${isOpen ? '!text-primary' : ''}`} />}
                     {!collapsed && (
-                        <span
-                            className={`${depth === 0 ? 'ltr:pl-3 rtl:pr-3' : ''} ${expanded ? 'text-primary' : 'text-black dark:text-[#506690]'} dark:group-hover:text-white-dark`}
-                        >
+                        <span className={`${depth === 0 ? 'ltr:pl-3 rtl:pr-3' : ''} ${isOpen ? 'text-primary' : 'text-black dark:text-[#506690]'} dark:group-hover:text-white-dark`}>
                             {module.name}
                         </span>
                     )}
                 </div>
 
                 {!collapsed && (
-                    <div className={`${expanded ? 'text-primary' : ''} ${!expanded ? '-rotate-90 rtl:rotate-90' : ''}`}>
+                    <div className={`${isOpen ? 'text-primary' : ''} ${!isOpen ? '-rotate-90 rtl:rotate-90' : ''}`}>
                         <IconCaretDown />
                     </div>
                 )}
             </button>
 
             {!collapsed && (
-                <AnimateHeight duration={300} height={expanded ? 'auto' : 0}>
+                <AnimateHeight duration={300} height={isOpen ? 'auto' : 0}>
                     <ul className="sub-menu text-gray-500">
                         {module.children.map((child) => (
                             <li key={child.id}>
-                                <SidebarMenuItem module={child} collapsed={collapsed} depth={depth + 1} onExpandSidebar={onExpandSidebar} />
+                                <SidebarMenuItem
+                                    module={child}
+                                    collapsed={collapsed}
+                                    depth={depth + 1}
+                                    onExpandSidebar={onExpandSidebar}
+                                    isOpen={openChildId === child.id}
+                                    onToggle={() => setOpenChildId((prev) => (prev === child.id ? null : child.id))}
+                                />
                             </li>
                         ))}
                     </ul>

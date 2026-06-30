@@ -13,7 +13,6 @@ import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import IconPlus from '@/components/Icon/IconPlus';
-import IconPrinter from '@/components/Icon/IconPrinter';
 import IconUsersGroup from '@/components/Icon/IconUsersGroup';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconUserPlus from '@/components/Icon/IconUserPlus';
@@ -71,70 +70,58 @@ const UserGroupsPage = () => {
 
     return (
         <div>
-            <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Configuration' }, { label: 'User Groups' }]} />
+            <Breadcrumb />
 
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold">User Groups</h1>
+                    <h1 className="text-xl font-bold">User Groups</h1>
                     <p className="text-white-dark">Manage workflow/approval groupings and which modules each group can access</p>
                 </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <StatCard label="Total Groups" value={groups.length} icon={<IconUsersGroup className="h-4 w-4" />} />
                 <StatCard label="Total Assignments" value={totalAssignments} icon={<IconUsers className="h-4 w-4" />} />
                 <StatCard label="Avg Members/Group" value={avgMembersPerGroup} icon={<IconUserPlus className="h-4 w-4" />} />
             </div>
 
             {(error || groupsError) && (
-                <div className="mt-5">
+                <div className="mt-3">
                     <Alert variant="danger" onClose={() => dispatch(clearUserGroupsError())}>
                         {error || groupsError}
                     </Alert>
                 </div>
             )}
 
-            <div className="panel mt-5">
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                    <h5 className="text-lg font-semibold">
-                        User Groups <span className="text-white-dark">{groups.length}</span>
-                    </h5>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline-primary" size="sm" onClick={() => window.print()}>
-                            <IconPrinter className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            Print
-                        </Button>
-                        <Button onClick={openCreate}>
-                            <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                            New Group
-                        </Button>
-                    </div>
-                </div>
-
-                <DataGrid
-                    columns={[
-                        {
-                            header: 'Actions',
-                            accessor: (row: UserGroup) => (
-                                <RowActionsMenu
-                                    onView={() => router.push(`/dashboard/admin/user-groups/${row.id}`)}
-                                    onDelete={() => setDeleteTarget(row)}
-                                    label={`Actions for ${row.name}`}
-                                />
-                            ),
-                        },
-                        { header: 'Group', accessor: 'name' },
-                        { header: 'Description', accessor: (row: UserGroup) => row.description || '—' },
-                        { header: 'No. of Members', accessor: 'memberCount' },
-                    ]}
-                    data={groups}
-                    rowKey={(row) => row.id}
-                    searchKeys={['name', 'description']}
-                    searchPlaceholder="Search groups..."
-                    loading={groupsLoading}
-                    emptyMessage="No user groups yet"
-                />
-            </div>
+            <DataGrid
+                className="mt-3"
+                title="User Groups"
+                count={groups.length}
+                columns={[
+                    {
+                        header: 'Actions',
+                        accessor: (row: UserGroup) => (
+                            <RowActionsMenu onView={() => router.push(`/dashboard/admin/user-groups/${row.id}`)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
+                        ),
+                    },
+                    { header: 'Group', accessor: 'name' },
+                    { header: 'Description', accessor: (row: UserGroup) => row.description || '—' },
+                    { header: 'No. of Members', accessor: 'memberCount' },
+                ]}
+                data={groups}
+                rowKey={(row) => row.id}
+                searchKeys={['name', 'description']}
+                searchPlaceholder="Search groups..."
+                loading={groupsLoading}
+                emptyMessage="No user groups yet"
+                onRefresh={() => dispatch(fetchUserGroups())}
+                toolbarActions={
+                    <Button size="sm" onClick={openCreate}>
+                        <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                        New Group
+                    </Button>
+                }
+            />
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="New Group">
                 <form onSubmit={submitForm} className="space-y-4">

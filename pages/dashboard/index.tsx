@@ -37,20 +37,20 @@ const Dashboard = () => {
                 </li>
             </ul>
 
-            <div className="pt-5">
-                <div className="rounded-md bg-primary-light p-8 text-center dark:bg-primary/10 sm:p-12">
-                    <h1 className="text-2xl font-extrabold text-black dark:text-white-light sm:text-4xl">
+            <div className="pt-3">
+                <div className="rounded-md bg-primary-light p-4 text-center dark:bg-primary/10 sm:p-6">
+                    <h1 className="text-xl font-extrabold text-black dark:text-white-light sm:text-2xl">
                         Welcome to SmoothSurf Sacco, {user?.username || 'Member'}!
                     </h1>
-                    <p className="mt-2 text-white-dark">Electronic Member &amp; Savings Management System</p>
+                    <p className="mt-1 text-white-dark">Electronic Member &amp; Savings Management System</p>
                 </div>
 
-                <div className="mt-5 rounded-md bg-primary-light p-6 dark:bg-primary/10">
+                <div className="mt-3 rounded-md bg-primary-light p-4 dark:bg-primary/10">
                     <h2 className="text-center text-lg font-extrabold uppercase tracking-wide text-black dark:text-white-light">Quick Access Menu</h2>
 
-                    <div className="mt-6 flex gap-6 overflow-x-auto pb-2">
+                    <div className="mt-3 flex flex-wrap justify-center gap-4">
                         {quickAccessItems.map((item) => (
-                            <Link key={item.label} href={item.href} className="flex shrink-0 flex-col items-center gap-2 text-center hover:text-primary">
+                            <Link key={item.label} href={item.href} className="flex w-20 flex-col items-center gap-2 text-center hover:text-primary">
                                 <span className="grid h-12 w-12 place-content-center rounded-full bg-white text-black shadow-sm dark:bg-black dark:text-white-light">
                                     <item.icon className="h-6 w-6" />
                                 </span>

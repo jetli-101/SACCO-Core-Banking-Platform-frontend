@@ -1,19 +1,44 @@
 import { PropsWithChildren, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
+import { useRouter } from 'next/router';
 import { IRootState } from './store';
 import { toggleRTL, toggleTheme, toggleLocale, toggleMenu, toggleLayout, toggleAnimation, toggleNavbar, toggleSemidark } from './store/themeConfigSlice';
-import { hydrateAuth } from './store/slices/auth/authSlice';
+import { hydrateAuth, logout } from './store/slices/auth/authSlice';
+import { SESSION_EXPIRED_EVENT } from './urlhelper/apiClient';
 import ToastContainer from './components/ui/ToastContainer';
 
 function App({ children }: PropsWithChildren) {
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const dispatch = useDispatch();
+    const router = useRouter();
     const { i18n } = useTranslation();
 
     useEffect(() => {
         dispatch(hydrateAuth());
     }, [dispatch]);
+
+    useEffect(() => {
+        // No accessToken at all (never logged in, a previous session was already
+        // cleared, or it was wiped in another tab) — keep dashboard routes from
+        // rendering a shell where every request fails silently; send the user
+        // straight to login instead. Re-checked on every client-side navigation,
+        // not just the initial load.
+        if (router.pathname.startsWith('/dashboard') && !localStorage.getItem('accessToken')) {
+            router.replace('/auth/login');
+        }
+    }, [router.pathname]);
+
+    useEffect(() => {
+        const handleSessionExpired = () => {
+            dispatch(logout());
+            if (!router.pathname.startsWith('/auth')) {
+                router.replace('/auth/login');
+            }
+        };
+        window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+        return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    }, [dispatch, router]);
 
     useEffect(() => {
         // This app never registers a service worker. If one is still active on this

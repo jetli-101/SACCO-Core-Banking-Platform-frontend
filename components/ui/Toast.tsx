@@ -20,13 +20,6 @@ const VARIANT_ICON: Record<ToastVariant, typeof IconCircleCheck> = {
     info: IconInfoCircle,
 };
 
-const VARIANT_ICON_CLASSES: Record<ToastVariant, string> = {
-    success: 'bg-success-light text-success dark:bg-success dark:text-success-light',
-    danger: 'bg-danger-light text-danger dark:bg-danger dark:text-danger-light',
-    warning: 'bg-warning-light text-warning dark:bg-warning dark:text-warning-light',
-    info: 'bg-info-light text-info dark:bg-info dark:text-info-light',
-};
-
 const VARIANT_LABEL: Record<ToastVariant, string> = {
     success: 'Success',
     danger: 'Error',
@@ -34,14 +27,9 @@ const VARIANT_LABEL: Record<ToastVariant, string> = {
     info: 'Info',
 };
 
-const VARIANT_BAR_CLASSES: Record<ToastVariant, string> = {
-    success: 'bg-success',
-    danger: 'bg-danger',
-    warning: 'bg-warning',
-    info: 'bg-info',
-};
-
-const Toast = ({ variant, message, duration = 4000, onDismiss }: ToastProps) => {
+// All variants share the app's primary orange theme color instead of per-variant
+// red/green/yellow — only the icon glyph and label text differ to convey meaning.
+const Toast = ({ variant, message, duration = 2200, onDismiss }: ToastProps) => {
     const Icon = VARIANT_ICON[variant];
     const [shrink, setShrink] = useState(false);
 
@@ -56,24 +44,21 @@ const Toast = ({ variant, message, duration = 4000, onDismiss }: ToastProps) => 
     }, []);
 
     return (
-        <div className="pointer-events-auto w-full overflow-hidden rounded-lg bg-white shadow-[0_5px_20px_rgba(0,0,0,0.1)] dark:bg-[#1b2e4b]">
-            <div className="flex items-center gap-3 px-4 py-3">
-                <span className={`grid h-8 w-8 shrink-0 place-content-center rounded-full ${VARIANT_ICON_CLASSES[variant]}`}>
-                    <Icon className="h-5 w-5" />
+        <div className="pointer-events-auto w-full overflow-hidden rounded-md border-l-[3px] border-primary bg-white shadow-[0_5px_20px_rgba(0,0,0,0.1)] dark:bg-[#1b2e4b]">
+            <div className="flex items-center gap-2.5 px-3 py-3">
+                <span className="grid h-7 w-7 shrink-0 place-content-center rounded-full bg-primary-light text-primary dark:bg-primary dark:text-primary-light">
+                    <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{VARIANT_LABEL[variant]}</p>
-                    <p className="truncate text-sm text-white-dark">{message}</p>
+                    <p className="text-sm font-semibold">{VARIANT_LABEL[variant]}</p>
+                    <p className="truncate text-xs text-white-dark">{message}</p>
                 </div>
                 <button type="button" className="shrink-0 text-white-dark hover:text-dark dark:hover:text-white-light" onClick={onDismiss} aria-label="Dismiss">
                     <IconX className="h-4 w-4" />
                 </button>
             </div>
-            <div className="h-1 w-full bg-white-light/40 dark:bg-white/10">
-                <div
-                    className={`h-full ${VARIANT_BAR_CLASSES[variant]} transition-[width] ease-linear`}
-                    style={{ width: shrink ? '0%' : '100%', transitionDuration: `${duration}ms` }}
-                />
+            <div className="h-0.5 w-full bg-white-light/40 dark:bg-white/10">
+                <div className="h-full bg-primary transition-[width] ease-linear" style={{ width: shrink ? '0%' : '100%', transitionDuration: `${duration}ms` }} />
             </div>
         </div>
     );
