@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchUsers, clearUsersError, updateUserStatus, approveMember, rejectMember, AppUser } from '@/store/slices/users/usersSlice';
+import { fetchUsers, clearUsersError, updateUserStatus, approveMember, rejectMember, inviteUser, InviteUserPayload, AppUser } from '@/store/slices/users/usersSlice';
+import { fetchRoles } from '@/store/slices/roles/rolesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import DataGrid from '@/components/ui/DataGrid';
 import StatCard from '@/components/ui/StatCard';
@@ -11,12 +12,15 @@ import Alert from '@/components/ui/Alert';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Spinner from '@/components/ui/Spinner';
+import Input from '@/components/ui/Input';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconClock from '@/components/Icon/IconClock';
+import IconPlus from '@/components/Icon/IconPlus';
 
 const statusBadgeClass: Record<string, string> = {
     ACTIVE: 'bg-success-light text-success',
     PENDING: 'bg-warning-light text-warning',
+    PENDING_ACTIVATION: 'bg-info-light text-info',
     SUSPENDED: 'bg-danger-light text-danger',
     LOCKED: 'bg-danger-light text-danger',
     DEACTIVATED: 'bg-white-light text-white-dark dark:bg-dark/40',
@@ -24,26 +28,63 @@ const statusBadgeClass: Record<string, string> = {
     REJECTED: 'bg-danger-light text-danger',
 };
 
+const emptyInvite: InviteUserPayload = { firstName: '', lastName: '', email: '', phone: '', roleNames: [] };
+
 type ReasonActionType = 'reject' | 'suspend';
 
 const UsersPage = () => {
     const dispatch = useAppDispatch();
     const { users, loading, actioningId, error } = useAppSelector((state) => state.users);
+    const { roles } = useAppSelector((state) => state.roles);
 
     const [approveTarget, setApproveTarget] = useState<AppUser | null>(null);
     const [reactivateTarget, setReactivateTarget] = useState<AppUser | null>(null);
     const [reasonAction, setReasonAction] = useState<{ type: ReasonActionType; user: AppUser } | null>(null);
     const [reason, setReason] = useState('');
 
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteForm, setInviteForm] = useState<InviteUserPayload>(emptyInvite);
+    const [inviteSubmitting, setInviteSubmitting] = useState(false);
+
     useEffect(() => {
         dispatch(fetchUsers());
+        dispatch(fetchRoles());
     }, [dispatch]);
 
-    const pendingCount = users.filter((user) => user.status === 'PENDING').length;
+    const pendingCount = users.filter((u) => u.status === 'PENDING').length;
+    const pendingActivationCount = users.filter((u) => u.status === 'PENDING_ACTIVATION').length;
 
     const closeReasonModal = () => {
         setReasonAction(null);
         setReason('');
+    };
+
+    const closeInviteModal = () => {
+        setShowInviteModal(false);
+        setInviteForm(emptyInvite);
+    };
+
+    const toggleRole = (roleName: string) => {
+        setInviteForm((prev) => ({
+            ...prev,
+            roleNames: prev.roleNames.includes(roleName)
+                ? prev.roleNames.filter((r) => r !== roleName)
+                : [...prev.roleNames, roleName],
+        }));
+    };
+
+    const submitInvite = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setInviteSubmitting(true);
+        try {
+            await dispatch(inviteUser(inviteForm)).unwrap();
+            dispatch(showToast({ variant: 'success', message: `Invitation sent to ${inviteForm.email}` }));
+            closeInviteModal();
+        } catch (err) {
+            dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to send invitation' }));
+        } finally {
+            setInviteSubmitting(false);
+        }
     };
 
     const confirmApprove = async () => {
@@ -85,6 +126,9 @@ const UsersPage = () => {
         }
     };
 
+    // Filter out ROLE_MEMBER from the invitation role picker — staff only
+    const staffRoles = roles.filter((r) => r.name !== 'ROLE_MEMBER');
+
     return (
         <div>
             <Breadcrumb />
@@ -94,11 +138,16 @@ const UsersPage = () => {
                     <h1 className="text-xl font-bold">Users</h1>
                     <p className="text-white-dark">Every staff and member account in your Sacco</p>
                 </div>
+                <Button onClick={() => setShowInviteModal(true)}>
+                    <IconPlus className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />
+                    Invite Staff User
+                </Button>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-md">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:max-w-lg">
                 <StatCard label="Total Users" value={users.length} icon={<IconUsers className="h-4 w-4" />} />
                 <StatCard label="Pending Approval" value={pendingCount} icon={<IconClock className="h-4 w-4" />} />
+                <StatCard label="Pending Activation" value={pendingActivationCount} icon={<IconClock className="h-4 w-4" />} />
             </div>
 
             {error && (
@@ -146,6 +195,88 @@ const UsersPage = () => {
                 onRefresh={() => dispatch(fetchUsers())}
             />
 
+            {/* ── Invite Staff User Modal ── */}
+            <Modal isOpen={showInviteModal} onClose={closeInviteModal} title="Invite Staff User" size="md">
+                <p className="mb-4 text-sm text-white-dark">
+                    An invitation email with a temporary password and activation link will be sent to the user. They must activate their account before logging in.
+                </p>
+                <form onSubmit={submitInvite} className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Input
+                            id="inviteFirstName"
+                            label="First Name *"
+                            value={inviteForm.firstName}
+                            onChange={(e) => setInviteForm((p) => ({ ...p, firstName: e.target.value }))}
+                            required
+                        />
+                        <Input
+                            id="inviteLastName"
+                            label="Last Name *"
+                            value={inviteForm.lastName}
+                            onChange={(e) => setInviteForm((p) => ({ ...p, lastName: e.target.value }))}
+                            required
+                        />
+                        <Input
+                            id="inviteEmail"
+                            label="Email *"
+                            type="email"
+                            value={inviteForm.email}
+                            onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))}
+                            required
+                        />
+                        <Input
+                            id="invitePhone"
+                            label="Phone *"
+                            type="tel"
+                            placeholder="07XXXXXXXX"
+                            value={inviteForm.phone}
+                            onChange={(e) => setInviteForm((p) => ({ ...p, phone: e.target.value }))}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <p className="mb-2 text-sm font-semibold">Roles *</p>
+                        {staffRoles.length === 0 ? (
+                            <p className="text-xs text-white-dark">Loading roles…</p>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {staffRoles.map((role) => {
+                                    const selected = inviteForm.roleNames.includes(role.name);
+                                    return (
+                                        <button
+                                            key={role.id}
+                                            type="button"
+                                            onClick={() => toggleRole(role.name)}
+                                            className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                                                selected
+                                                    ? 'border-primary bg-primary-light text-primary dark:bg-primary/20'
+                                                    : 'border-white-light text-white-dark hover:border-primary/50 hover:text-primary dark:border-white/10'
+                                            }`}
+                                        >
+                                            {role.name.replace('ROLE_', '').replace(/_/g, ' ')}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {inviteForm.roleNames.length === 0 && (
+                            <p className="mt-1 text-xs text-danger">Select at least one role</p>
+                        )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                        <Button type="button" variant="outline-dark" onClick={closeInviteModal}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={inviteSubmitting || inviteForm.roleNames.length === 0}>
+                            {inviteSubmitting && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
+                            {inviteSubmitting ? 'Sending…' : 'Send Invitation'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+
             <ConfirmModal
                 isOpen={!!approveTarget}
                 title="Approve User"
@@ -182,7 +313,12 @@ const UsersPage = () => {
                     <Button type="button" variant="outline-dark" onClick={closeReasonModal}>
                         Cancel
                     </Button>
-                    <Button type="button" variant="danger" onClick={confirmReasonAction} disabled={!!reasonAction && actioningId === (reasonAction.type === 'reject' ? reasonAction.user.memberId : reasonAction.user.id)}>
+                    <Button
+                        type="button"
+                        variant="danger"
+                        onClick={confirmReasonAction}
+                        disabled={!!reasonAction && actioningId === (reasonAction.type === 'reject' ? reasonAction.user.memberId : reasonAction.user.id)}
+                    >
                         {!!reasonAction && actioningId === (reasonAction.type === 'reject' ? reasonAction.user.memberId : reasonAction.user.id) && (
                             <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />
                         )}

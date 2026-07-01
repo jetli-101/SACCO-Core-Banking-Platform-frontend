@@ -88,6 +88,7 @@ const UserGroupDetailPage = () => {
                 else next.delete(moduleId);
                 return next;
             });
+            dispatch(showToast({ variant: 'success', message: granted ? 'Permission granted' : 'Permission revoked' }));
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to update permission' }));
         }

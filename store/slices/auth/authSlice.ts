@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { apiGet, apiPost, apiPut, AUTH_ENDPOINTS, USER_ENDPOINTS } from '../../../urlhelper';
 
+
 // Matches UserResponse from the backend's AuthController/UserController exactly.
 export interface AuthUser {
     id: string;
@@ -12,15 +13,19 @@ export interface AuthUser {
     roles: string[];
     status?: string;
     avatarUrl?: string;
+    firstLogin?: boolean;
     lastLoginAt?: string;
     createdAt?: string;
 }
 
 // Matches AuthResponse from AuthController (login/refresh).
 interface AuthResponse {
+    otpRequired: boolean;
+    email?: string;
     accessToken: string;
     refreshToken: string;
     tokenType: string;
+    requiresPasswordChange: boolean;
     user: AuthUser;
 }
 
@@ -68,6 +73,9 @@ interface AuthState {
     loading: boolean;
     error: string | null;
     pendingVerificationEmail: string | null;
+    // Invitation flow
+    otpRequiredEmail: string | null;
+    requiresPasswordChange: boolean;
 }
 
 const initialState: AuthState = {
@@ -77,6 +85,8 @@ const initialState: AuthState = {
     loading: false,
     error: null,
     pendingVerificationEmail: null,
+    otpRequiredEmail: null,
+    requiresPasswordChange: false,
 };
 
 const persistSession = (accessToken: string, refreshToken: string, user: AuthUser) => {
@@ -97,8 +107,29 @@ const persistUser = (user: AuthUser) => {
 
 export const loginUser = createAsyncThunk('auth/login', async (credentials: { email: string; password: string }) => {
     const envelope = await apiPost<BackendEnvelope<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, credentials);
-    persistSession(envelope.data.accessToken, envelope.data.refreshToken, envelope.data.user);
+    if (!envelope.data.otpRequired) {
+        persistSession(envelope.data.accessToken, envelope.data.refreshToken, envelope.data.user);
+    }
     return envelope.data;
+});
+
+export const activateAccount = createAsyncThunk('auth/activate', async (token: string) => {
+    await apiPost<BackendEnvelope<null>>(`${AUTH_ENDPOINTS.ACTIVATE}?token=${encodeURIComponent(token)}`, {});
+});
+
+export const verifyLoginOtp = createAsyncThunk('auth/verifyLoginOtp', async (payload: { email: string; otp: string }) => {
+    const envelope = await apiPost<BackendEnvelope<AuthResponse>>(AUTH_ENDPOINTS.VERIFY_LOGIN_OTP, { email: payload.email, otp: payload.otp });
+    if (!envelope.data.requiresPasswordChange) {
+        persistSession(envelope.data.accessToken, envelope.data.refreshToken, envelope.data.user);
+    } else {
+        // Store tokens temporarily so the change-password endpoint can be called authenticated
+        persistSession(envelope.data.accessToken, envelope.data.refreshToken, envelope.data.user);
+    }
+    return envelope.data;
+});
+
+export const changeTemporaryPassword = createAsyncThunk('auth/changeTemporaryPassword', async (payload: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    await apiPost<BackendEnvelope<null>>(AUTH_ENDPOINTS.CHANGE_TEMPORARY_PASSWORD, payload);
 });
 
 export const registerUser = createAsyncThunk('auth/register', async (payload: RegisterPayload) => {
@@ -182,6 +213,8 @@ const authSlice = createSlice({
             state.user = null;
             state.accessToken = null;
             state.isAuthenticated = false;
+            state.otpRequiredEmail = null;
+            state.requiresPasswordChange = false;
         },
         clearAuthError(state) {
             state.error = null;
@@ -195,13 +228,57 @@ const authSlice = createSlice({
             })
             .addCase(loginUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
                 state.loading = false;
-                state.user = action.payload.user;
-                state.accessToken = action.payload.accessToken;
-                state.isAuthenticated = true;
+                if (action.payload.otpRequired) {
+                    state.otpRequiredEmail = action.payload.email || null;
+                } else {
+                    state.user = action.payload.user;
+                    state.accessToken = action.payload.accessToken;
+                    state.isAuthenticated = true;
+                }
             })
             .addCase(loginUser.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.error.message || 'Unable to login';
+            })
+            .addCase(verifyLoginOtp.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(verifyLoginOtp.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+                state.loading = false;
+                state.otpRequiredEmail = null;
+                state.user = action.payload.user;
+                state.accessToken = action.payload.accessToken;
+                state.isAuthenticated = true;
+                state.requiresPasswordChange = action.payload.requiresPasswordChange;
+            })
+            .addCase(verifyLoginOtp.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.error.message || 'Invalid or expired OTP';
+            })
+            .addCase(changeTemporaryPassword.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(changeTemporaryPassword.fulfilled, (state) => {
+                state.loading = false;
+                state.requiresPasswordChange = false;
+                if (state.user) state.user.firstLogin = false;
+            })
+            .addCase(changeTemporaryPassword.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.error.message || 'Unable to change password';
+            })
+            .addCase(activateAccount.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(activateAccount.fulfilled, (state) => {
+                state.loading = false;
+            })
+            .addCase(activateAccount.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.error.message || 'Activation failed';
             })
             .addCase(registerUser.pending, (state) => {
                 state.loading = true;

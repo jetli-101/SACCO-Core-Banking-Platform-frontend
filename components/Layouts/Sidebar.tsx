@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { toggleSidebar, toggleSidebarCollapsed } from '../../store/themeConfigSlice';
 import { IRootState } from '../../store';
 import { useAppDispatch } from '@/store/hooks';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { fetchModules, fetchModuleTypes, buildModuleTree } from '@/store/slices/modules/modulesSlice';
+import { fetchMyMenu } from '@/store/slices/modules/modulesSlice';
 import SidebarMenuItem from './SidebarMenuItem';
 import IconMenuDashboard from '@/components/Icon/Menu/IconMenuDashboard';
 import IconCaretsDown from '@/components/Icon/IconCaretsDown';
@@ -15,20 +15,15 @@ const Sidebar = () => {
     const router = useRouter();
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
-    const { items, itemsLoading, itemsError, moduleTypes, moduleTypesLoading, moduleTypesError } = useSelector((state: IRootState) => state.modules);
+    const { menuGroups, menuLoading, menuError } = useSelector((state: IRootState) => state.modules);
     const dispatch = useAppDispatch();
-
-    const loading = itemsLoading || moduleTypesLoading;
-    const error = itemsError || moduleTypesError;
-    const tree = useMemo(() => buildModuleTree(items, moduleTypes), [items, moduleTypes]);
 
     // Accordion behavior at the top level — shared across every module-type group, so
     // opening a parent module under one section closes whichever was open elsewhere.
     const [openModuleId, setOpenModuleId] = useState<string | null>(null);
 
     useEffect(() => {
-        dispatch(fetchModules());
-        dispatch(fetchModuleTypes());
+        dispatch(fetchMyMenu());
     }, [dispatch]);
 
     useEffect(() => {
@@ -119,7 +114,7 @@ const Sidebar = () => {
                                 </Link>
                             </li>
 
-                            {loading && !collapsed && (
+                            {menuLoading && !collapsed && (
                                 <li className="mt-4 space-y-2 px-1">
                                     {[1, 2, 3].map((key) => (
                                         <div key={key} className="h-8 animate-pulse rounded-md bg-white/60 dark:bg-dark/20" />
@@ -127,13 +122,13 @@ const Sidebar = () => {
                                 </li>
                             )}
 
-                            {!loading && error && !collapsed && (
+                            {!menuLoading && menuError && !collapsed && (
                                 <li className="mt-4 px-1">
-                                    <p className="text-xs text-danger">Unable to load menu: {error}</p>
+                                    <p className="text-xs text-danger">Unable to load menu: {menuError}</p>
                                 </li>
                             )}
 
-                            {tree.map((group) => (
+                            {menuGroups.map((group) => (
                                 <li key={group.moduleTypeId} className="border-t border-white-light pt-3 first:border-t-0 first:pt-0 dark:border-white/10">
                                     {!collapsed && (
                                         <h6 className="-mx-4 mb-1 mt-3 px-7 text-xs font-extrabold uppercase tracking-wide text-black/60 first:mt-0 dark:text-white-dark">{group.moduleTypeName}</h6>
