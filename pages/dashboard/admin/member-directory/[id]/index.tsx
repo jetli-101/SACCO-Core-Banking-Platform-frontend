@@ -11,6 +11,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Alert from '@/components/ui/Alert';
 import Spinner from '@/components/ui/Spinner';
+import Tabs from '@/components/ui/Tabs';
 
 const emptyForm: UpdateMemberPayload = {
     occupation: '',
@@ -23,9 +24,10 @@ const emptyForm: UpdateMemberPayload = {
 };
 
 const TABS = [
-    { key: 'personal', label: 'Personal Details' },
-    { key: 'contact', label: 'Contact Details' },
+    { key: 'personal', label: 'Personal Information' },
+    { key: 'contact', label: 'Organization & Address' },
     { key: 'nextOfKin', label: 'Next of Kin' },
+    { key: 'security', label: 'Security' },
 ];
 
 const MemberDetailPage = () => {
@@ -92,21 +94,8 @@ const MemberDetailPage = () => {
                             </div>
                         </div>
 
-                        <div className="mt-5 flex flex-wrap gap-2 border-b border-white-light pb-4 dark:border-white/10">
-                            {TABS.map((tab) => (
-                                <button
-                                    key={tab.key}
-                                    type="button"
-                                    onClick={() => setActiveTab(tab.key)}
-                                    className={`rounded-md border px-4 py-2 text-sm font-semibold transition-colors ${
-                                        activeTab === tab.key
-                                            ? 'border-primary bg-primary-light text-primary dark:bg-primary/20'
-                                            : 'border-white-light text-white-dark hover:border-primary/50 hover:text-primary dark:border-white/10'
-                                    }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
+                        <div className="mt-5">
+                            <Tabs items={TABS} active={activeTab} onChange={setActiveTab} variant="boxed" />
                         </div>
 
                         {activeTab === 'personal' && (
@@ -196,6 +185,19 @@ const MemberDetailPage = () => {
                                 ) : (
                                     <p className="text-sm text-white-dark">No next of kin on record.</p>
                                 )}
+                            </div>
+                        )}
+
+                        {activeTab === 'security' && (
+                            <div className="mt-5">
+                                <h6 className="mb-3 font-semibold">Security &amp; Access</h6>
+                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    <Input id="secStatus" label="Account Status" value={member.user.status || ''} disabled />
+                                    <Input id="secEmail" label="Email Address" value={member.user.email} disabled />
+                                    <Input id="secLastLogin" label="Last Login" value={member.user.lastLoginAt ? new Date(member.user.lastLoginAt).toLocaleString() : 'Never'} disabled />
+                                    <Input id="secMemberSince" label="Member Since" value={member.user.createdAt ? new Date(member.user.createdAt).toLocaleDateString() : ''} disabled />
+                                    <Input id="secPassword" label="Password" value="••••••••••••" disabled helperText="Password is encrypted and cannot be displayed." />
+                                </div>
                             </div>
                         )}
                     </div>

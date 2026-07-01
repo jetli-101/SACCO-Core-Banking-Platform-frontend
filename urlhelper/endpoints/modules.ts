@@ -5,6 +5,7 @@
 //   module-types: DELETE /module-types/{id}
 export const MODULE_ENDPOINTS = {
     ALL: '/modules/all',
+    MY_MENU: '/modules/module-tree',
     BY_ID: (id: string) => `/modules/${id}`,
     CREATE: '/modules/create',
     UPDATE: (id: string) => `/modules/update/${id}`,

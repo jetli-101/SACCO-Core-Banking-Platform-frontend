@@ -27,8 +27,12 @@ const Login = () => {
         dispatch(clearAuthError());
 
         try {
-            await dispatch(loginUser({ email, password })).unwrap();
-            router.push('/dashboard');
+            const result = await dispatch(loginUser({ email, password })).unwrap();
+            if (result.otpRequired) {
+                router.push(`/auth/verify-login-otp?email=${encodeURIComponent(result.email || email)}`);
+            } else {
+                router.push('/dashboard');
+            }
         } catch {
             // error is already captured in auth.error via the rejected case
         }

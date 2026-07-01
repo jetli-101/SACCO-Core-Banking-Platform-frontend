@@ -59,6 +59,11 @@ interface ModulesState {
     itemsLoading: boolean;
     itemsError: string | null;
 
+    // Permission-aware sidebar menu for the current user (GET /modules/module-tree)
+    menuGroups: ModuleTreeGroup[];
+    menuLoading: boolean;
+    menuError: string | null;
+
     moduleTypes: ModuleType[];
     moduleTypesLoading: boolean;
     moduleTypesError: string | null;
@@ -71,6 +76,10 @@ const initialState: ModulesState = {
     items: [],
     itemsLoading: false,
     itemsError: null,
+
+    menuGroups: [],
+    menuLoading: false,
+    menuError: null,
 
     moduleTypes: [],
     moduleTypesLoading: false,
@@ -145,6 +154,14 @@ export const buildModuleTree = (items: ModuleNode[], moduleTypes: ModuleType[]):
 
 export const fetchModules = createAsyncThunk('modules/fetchAll', async () => {
     const response = await apiGet<BackendEnvelope<ModuleNode[]>>(MODULE_ENDPOINTS.ALL);
+    return response.data;
+});
+
+// Permission-aware sidebar menu — visible to every authenticated user.
+// Returns only the modules the current user is entitled to see (unrestricted +
+// explicitly granted via their roles/groups), grouped by module type.
+export const fetchMyMenu = createAsyncThunk('modules/fetchMyMenu', async () => {
+    const response = await apiGet<BackendEnvelope<ModuleTreeGroup[]>>(MODULE_ENDPOINTS.MY_MENU);
     return response.data;
 });
 
@@ -225,6 +242,20 @@ const modulesSlice = createSlice({
                 } else {
                     state.items = byOrderNo([...state.items, action.payload]);
                 }
+            })
+
+            // Sidebar menu tree (permission-aware)
+            .addCase(fetchMyMenu.pending, (state) => {
+                state.menuLoading = true;
+                state.menuError = null;
+            })
+            .addCase(fetchMyMenu.fulfilled, (state, action) => {
+                state.menuLoading = false;
+                state.menuGroups = action.payload;
+            })
+            .addCase(fetchMyMenu.rejected, (state, action) => {
+                state.menuLoading = false;
+                state.menuError = action.error.message || 'Unable to load menu';
             })
 
             // Module mutations

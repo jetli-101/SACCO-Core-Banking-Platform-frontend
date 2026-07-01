@@ -1,6 +1,14 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { apiGet, apiPost, USER_ENDPOINTS, MEMBER_ENDPOINTS } from '@/urlhelper';
 
+export interface InviteUserPayload {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    roleNames: string[];
+}
+
 // Matches UserResponse on the backend.
 export interface AppUser {
     id: string;
@@ -38,6 +46,12 @@ const initialState: UsersState = {
 
 export const fetchUsers = createAsyncThunk('users/fetchAll', async () => {
     const response = await apiGet<BackendEnvelope<AppUser[]>>(USER_ENDPOINTS.ALL);
+    return response.data;
+});
+
+export const inviteUser = createAsyncThunk('users/invite', async (payload: InviteUserPayload, { dispatch }) => {
+    const response = await apiPost<BackendEnvelope<AppUser>>(USER_ENDPOINTS.INVITE, payload);
+    await dispatch(fetchUsers());
     return response.data;
 });
 
@@ -115,6 +129,17 @@ const usersSlice = createSlice({
             .addCase(rejectMember.rejected, (state, action) => {
                 state.actioningId = null;
                 state.error = action.error.message || 'Unable to reject member';
+            })
+            .addCase(inviteUser.pending, (state) => {
+                state.actioningId = 'invite';
+                state.error = null;
+            })
+            .addCase(inviteUser.fulfilled, (state) => {
+                state.actioningId = null;
+            })
+            .addCase(inviteUser.rejected, (state, action) => {
+                state.actioningId = null;
+                state.error = action.error.message || 'Unable to send invitation';
             });
     },
 });
