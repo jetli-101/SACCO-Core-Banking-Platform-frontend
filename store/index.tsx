@@ -8,6 +8,14 @@ import membersSlice from './slices/members/membersSlice';
 import userGroupsSlice from './slices/userGroups/userGroupsSlice';
 import usersSlice from './slices/users/usersSlice';
 import toastSlice from './slices/ui/toastSlice';
+import workflowsSlice from './slices/workflows/workflowsSlice';
+import workflowStagesSlice from './slices/workflows/workflowStagesSlice';
+import workflowTransitionsSlice from './slices/workflows/workflowTransitionsSlice';
+import workflowStatusesSlice from './slices/workflows/workflowStatusesSlice';
+import workflowStatesSlice from './slices/workflows/workflowStatesSlice';
+import workflowInstancesSlice from './slices/workflows/workflowInstancesSlice';
+import workflowInstanceHistorySlice from './slices/workflows/workflowInstanceHistorySlice';
+import workflowMappingsSlice from './slices/workflows/workflowMappingsSlice';
 
 const rootReducer = combineReducers({
     themeConfig: themeConfigSlice,
@@ -19,6 +27,14 @@ const rootReducer = combineReducers({
     userGroups: userGroupsSlice,
     users: usersSlice,
     toast: toastSlice,
+    workflows: workflowsSlice,
+    workflowStages: workflowStagesSlice,
+    workflowTransitions: workflowTransitionsSlice,
+    workflowStatuses: workflowStatusesSlice,
+    workflowStates: workflowStatesSlice,
+    workflowInstances: workflowInstancesSlice,
+    workflowInstanceHistory: workflowInstanceHistorySlice,
+    workflowMappings: workflowMappingsSlice,
 });
 
 export default configureStore({
