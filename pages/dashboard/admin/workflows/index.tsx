@@ -16,6 +16,7 @@ import IconPlus from '@/components/Icon/IconPlus';
 import IconListCheck from '@/components/Icon/IconListCheck';
 import IconRouter from '@/components/Icon/IconRouter';
 import IconChartSquare from '@/components/Icon/IconChartSquare';
+import ViewWorkflowModal from '@/components/workflow/ViewWorkflowModal';
 
 const WorkflowsPage = () => {
     const dispatch = useAppDispatch();
@@ -24,6 +25,7 @@ const WorkflowsPage = () => {
 
     const [deleteTarget, setDeleteTarget] = useState<Workflow | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [viewingId, setViewingId] = useState<string | null>(null);
 
     useEffect(() => {
         dispatch(fetchWorkflows());
@@ -135,7 +137,12 @@ const WorkflowsPage = () => {
                     {
                         header: 'Actions',
                         accessor: (row: Workflow) => (
-                            <RowActionsMenu onEdit={() => router.push(`/dashboard/admin/workflows/${row.id}/edit`)} onDelete={() => setDeleteTarget(row)} label={`Actions for ${row.name}`} />
+                            <RowActionsMenu
+                                onView={() => setViewingId(row.id)}
+                                onEdit={() => router.push(`/dashboard/admin/workflows/${row.id}/edit`)}
+                                onDelete={() => setDeleteTarget(row)}
+                                label={`Actions for ${row.name}`}
+                            />
                         ),
                     },
                     { header: 'Workflow Name', accessor: 'name' },
@@ -166,6 +173,8 @@ const WorkflowsPage = () => {
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteTarget(null)}
             />
+
+            <ViewWorkflowModal workflowId={viewingId} onClose={() => setViewingId(null)} />
         </div>
     );
 };
