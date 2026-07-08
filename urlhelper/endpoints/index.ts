@@ -15,3 +15,4 @@ export * from './workflowStates';
 export * from './workflowInstances';
 export * from './workflowInstanceHistory';
 export * from './workflowMappings';
+export * from './loans';

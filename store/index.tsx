@@ -16,6 +16,7 @@ import workflowStatesSlice from './slices/workflows/workflowStatesSlice';
 import workflowInstancesSlice from './slices/workflows/workflowInstancesSlice';
 import workflowInstanceHistorySlice from './slices/workflows/workflowInstanceHistorySlice';
 import workflowMappingsSlice from './slices/workflows/workflowMappingsSlice';
+import loansSlice from './slices/loans/loansSlice';
 
 const rootReducer = combineReducers({
     themeConfig: themeConfigSlice,
@@ -35,6 +36,7 @@ const rootReducer = combineReducers({
     workflowInstances: workflowInstancesSlice,
     workflowInstanceHistory: workflowInstanceHistorySlice,
     workflowMappings: workflowMappingsSlice,
+    loans: loansSlice,
 });
 
 export default configureStore({
