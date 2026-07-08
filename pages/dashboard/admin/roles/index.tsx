@@ -97,6 +97,7 @@ const RolesPage = () => {
                 className="mt-3"
                 title="System Roles"
                 count={roles.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

@@ -54,7 +54,7 @@ const RowActionsMenu = ({ onView, onEdit, onManageAccess, onApprove, onReject, o
                         <li>
                             <button type="button" onClick={onReview}>
                                 <IconEye className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                                Review
+                                View Process
                             </button>
                         </li>
                     )}

@@ -184,6 +184,7 @@ const ViewWorkflowModal = ({ workflowId, onClose }: ViewWorkflowModalProps) => {
                     panel={false}
                     title="Processes"
                     count={workflowInstances.length}
+                    exportable
                     columns={[
                         { header: 'Process', accessor: (row) => row.processName },
                         { header: 'Current Stage', accessor: (row) => row.currentStageName },

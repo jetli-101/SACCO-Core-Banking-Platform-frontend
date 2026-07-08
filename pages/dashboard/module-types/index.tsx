@@ -117,6 +117,7 @@ const ModuleTypesPage = () => {
                 className="mt-3"
                 title="Module Type Records"
                 count={moduleTypes.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

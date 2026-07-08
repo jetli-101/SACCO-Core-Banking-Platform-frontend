@@ -164,6 +164,7 @@ const ModulesPage = () => {
                 className="mt-3"
                 title="Module Records"
                 count={orderedModules.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

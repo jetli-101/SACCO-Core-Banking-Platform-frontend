@@ -1,157 +1,233 @@
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchWorkflows } from '@/store/slices/workflows/workflowsSlice';
-import { fetchWorkflowStages } from '@/store/slices/workflows/workflowStagesSlice';
-import { fetchWorkflowTransitions } from '@/store/slices/workflows/workflowTransitionsSlice';
 import {
-    fetchWorkflowStageActions,
-    createWorkflowStageAction,
-    updateWorkflowStageAction,
-    deleteWorkflowStageAction,
-    clearWorkflowStageActionsError,
-    WorkflowStageAction,
-    WorkflowStageActionPayload,
-    WorkflowStageActionChecklistItem,
-} from '@/store/slices/workflows/workflowStageActionsSlice';
+    fetchChecklists,
+    createChecklist,
+    updateChecklist,
+    deleteChecklist,
+    addChecklistItem,
+    updateChecklistItem,
+    deleteChecklistItem,
+    clearChecklistsError,
+    Checklist,
+    ChecklistItem,
+    ChecklistPayload,
+    ChecklistItemPayload,
+} from '@/store/slices/workflows/checklistsSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
 import Checkbox from '@/components/ui/Checkbox';
 import Spinner from '@/components/ui/Spinner';
-import Badge from '@/components/ui/Badge';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconEdit from '@/components/Icon/IconEdit';
 import IconTrash from '@/components/Icon/IconTrash';
 import IconSquareCheck from '@/components/Icon/IconSquareCheck';
-import IconX from '@/components/Icon/IconX';
+import IconListCheck from '@/components/Icon/IconListCheck';
+import IconRefresh from '@/components/Icon/IconRefresh';
+import IconPrinter from '@/components/Icon/IconPrinter';
+import IconLink from '@/components/Icon/IconLink';
 
-const emptyForm = (stageId: string): WorkflowStageActionPayload => ({
-    stageId,
-    transitionId: '',
-    name: '',
-    requiresChecklistCompletion: true,
-    requiresApprovalComment: false,
-    active: true,
-    checklistItems: [],
-});
+const emptyChecklistForm = (): ChecklistPayload => ({ name: '', description: '', active: true });
+const emptyItemForm = (orderNo: number): ChecklistItemPayload => ({ itemText: '', required: true, orderNo });
 
-const emptyChecklistItem: WorkflowStageActionChecklistItem = { itemText: '', required: true, orderNo: 0 };
+const ORG_NAME = 'SmoothSurf Sacco';
 
-// Stage actions are the optional checklist/approval-comment gate a transition can carry
-// (WorkFlowStageAction on the backend) — surfaced here as a standalone "Checklists" page
-// since they're keyed off a single stage rather than living inside the Edit Workflow tabs.
+// Branded print of every checklist (letterhead matches components/ui/DataGrid.tsx) — a
+// standalone routine rather than reuse of DataGrid's print since checklists render as
+// nested lists, not a flat table.
+const printAllChecklists = (checklists: Checklist[]) => {
+    document.getElementById('checklist-print-content')?.remove();
+    document.getElementById('checklist-print-style')?.remove();
+
+    const container = document.createElement('div');
+    container.id = 'checklist-print-content';
+    container.innerHTML = `
+        <div class="cl-print-header">
+            <div class="cl-print-org">${ORG_NAME}</div>
+            <div class="cl-print-title">Checklist Management</div>
+        </div>
+        <div class="cl-print-meta">
+            <span>Total Checklists: ${checklists.length}</span>
+            <span>Generated: ${new Date().toLocaleString()}</span>
+        </div>
+        ${checklists
+            .map(
+                (checklist) => `
+            <div class="cl-print-checklist">
+                <div class="cl-print-checklist-name">${checklist.name}${checklist.description ? ` — ${checklist.description}` : ''}</div>
+                <table class="cl-print-table">
+                    <thead><tr><th>#</th><th>Item</th><th>Mandatory</th></tr></thead>
+                    <tbody>
+                        ${[...checklist.items]
+                            .sort((a, b) => a.orderNo - b.orderNo)
+                            .map((item, index) => `<tr><td>${index + 1}</td><td>${item.itemText}</td><td>${item.required ? 'Yes' : 'No'}</td></tr>`)
+                            .join('')}
+                    </tbody>
+                </table>
+            </div>`
+            )
+            .join('')}
+    `;
+
+    const style = document.createElement('style');
+    style.id = 'checklist-print-style';
+    style.textContent = `
+        @media print {
+            body * { visibility: hidden; }
+            #checklist-print-content, #checklist-print-content * { visibility: visible; }
+            #checklist-print-content { position: absolute; inset: 0; padding: 20px; font-family: Arial, Helvetica, sans-serif; }
+            @page { size: A4; margin: 1.2cm; }
+            .cl-print-header { border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 10px; }
+            .cl-print-org { font-size: 14px; font-weight: 700; color: #1e3a8a; }
+            .cl-print-title { font-size: 18px; font-weight: 700; text-transform: uppercase; }
+            .cl-print-meta { display: flex; justify-content: space-between; font-size: 9pt; color: #4b5563; margin-bottom: 16px; }
+            .cl-print-checklist { margin-bottom: 18px; }
+            .cl-print-checklist-name { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+            .cl-print-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+            .cl-print-table th, .cl-print-table td { border: 1px solid #e5e7eb; padding: 5px 8px; text-align: left; }
+            .cl-print-table th { background: #1e3a8a; color: white; }
+        }
+    `;
+
+    document.body.appendChild(container);
+    document.head.appendChild(style);
+    window.print();
+
+    const cleanup = () => {
+        container.remove();
+        style.remove();
+        window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 10000);
+};
+
 const WorkflowChecklistsPage = () => {
     const dispatch = useAppDispatch();
-    const { workflows } = useAppSelector((state) => state.workflows);
-    const { stages } = useAppSelector((state) => state.workflowStages);
-    const { transitions } = useAppSelector((state) => state.workflowTransitions);
-    const { actions, loading, error, saving } = useAppSelector((state) => state.workflowStageActions);
+    const { checklists, loading, error, saving } = useAppSelector((state) => state.checklists);
 
-    const [workflowId, setWorkflowId] = useState('');
-    const [stageId, setStageId] = useState('');
+    const [selectedId, setSelectedId] = useState<string>('');
 
-    const [modalOpen, setModalOpen] = useState(false);
-    const [editTarget, setEditTarget] = useState<WorkflowStageAction | null>(null);
-    const [form, setForm] = useState<WorkflowStageActionPayload>(emptyForm(''));
-    const [deleteTarget, setDeleteTarget] = useState<WorkflowStageAction | null>(null);
-    const [deleting, setDeleting] = useState(false);
+    const [checklistModalOpen, setChecklistModalOpen] = useState(false);
+    const [editingChecklist, setEditingChecklist] = useState<Checklist | null>(null);
+    const [checklistForm, setChecklistForm] = useState<ChecklistPayload>(emptyChecklistForm());
+    const [deleteChecklistTarget, setDeleteChecklistTarget] = useState<Checklist | null>(null);
+    const [deletingChecklist, setDeletingChecklist] = useState(false);
+
+    const [itemModalOpen, setItemModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null);
+    const [itemForm, setItemForm] = useState<ChecklistItemPayload>(emptyItemForm(0));
+    const [deleteItemTarget, setDeleteItemTarget] = useState<ChecklistItem | null>(null);
+    const [deletingItem, setDeletingItem] = useState(false);
 
     useEffect(() => {
-        dispatch(fetchWorkflows());
+        dispatch(fetchChecklists());
     }, [dispatch]);
 
     useEffect(() => {
-        setStageId('');
-        if (workflowId) {
-            dispatch(fetchWorkflowStages(workflowId));
-            dispatch(fetchWorkflowTransitions(workflowId));
-        }
-    }, [dispatch, workflowId]);
+        if (!selectedId && checklists.length > 0) setSelectedId(checklists[0].id);
+    }, [checklists, selectedId]);
 
-    useEffect(() => {
-        if (stageId) dispatch(fetchWorkflowStageActions(stageId));
-    }, [dispatch, stageId]);
+    const selectedChecklist = useMemo(() => checklists.find((checklist) => checklist.id === selectedId) || null, [checklists, selectedId]);
 
-    // Transitions that start from the selected stage — the only ones a stage action can gate.
-    const eligibleTransitions = useMemo(() => transitions.filter((transition) => transition.fromStageId === stageId), [transitions, stageId]);
-
-    // A transition can carry at most one stage action, so hide ones already gated (unless it's the one being edited).
-    const availableTransitions = useMemo(
-        () => eligibleTransitions.filter((transition) => transition.id === editTarget?.transitionId || !actions.some((action) => action.transitionId === transition.id)),
-        [eligibleTransitions, actions, editTarget]
-    );
-
-    const openCreate = () => {
-        setEditTarget(null);
-        setForm(emptyForm(stageId));
-        dispatch(clearWorkflowStageActionsError());
-        setModalOpen(true);
+    const openCreateChecklist = () => {
+        setEditingChecklist(null);
+        setChecklistForm(emptyChecklistForm());
+        dispatch(clearChecklistsError());
+        setChecklistModalOpen(true);
     };
 
-    const openEdit = (action: WorkflowStageAction) => {
-        setEditTarget(action);
-        setForm({
-            stageId: action.stageId,
-            transitionId: action.transitionId,
-            name: action.name,
-            requiresChecklistCompletion: action.requiresChecklistCompletion,
-            requiresApprovalComment: action.requiresApprovalComment,
-            active: action.active,
-            checklistItems: action.checklistItems.map((item) => ({ ...item })),
-        });
-        dispatch(clearWorkflowStageActionsError());
-        setModalOpen(true);
+    const openEditChecklist = (checklist: Checklist) => {
+        setEditingChecklist(checklist);
+        setChecklistForm({ name: checklist.name, description: checklist.description || '', active: checklist.active });
+        dispatch(clearChecklistsError());
+        setChecklistModalOpen(true);
     };
 
-    const addChecklistItem = () => {
-        setForm((prev) => ({ ...prev, checklistItems: [...prev.checklistItems, { ...emptyChecklistItem, orderNo: prev.checklistItems.length }] }));
-    };
-
-    const updateChecklistItem = (index: number, patch: Partial<WorkflowStageActionChecklistItem>) => {
-        setForm((prev) => ({ ...prev, checklistItems: prev.checklistItems.map((item, i) => (i === index ? { ...item, ...patch } : item)) }));
-    };
-
-    const removeChecklistItem = (index: number) => {
-        setForm((prev) => ({ ...prev, checklistItems: prev.checklistItems.filter((_, i) => i !== index).map((item, i) => ({ ...item, orderNo: i })) }));
-    };
-
-    const submitForm = async (event: React.FormEvent) => {
+    const submitChecklist = async (event: React.FormEvent) => {
         event.preventDefault();
         try {
-            const payload = { ...form, checklistItems: form.checklistItems.filter((item) => item.itemText.trim().length > 0) };
-            if (editTarget) {
-                await dispatch(updateWorkflowStageAction({ id: editTarget.id, payload })).unwrap();
-                dispatch(showToast({ variant: 'success', message: `Checklist "${form.name}" updated successfully` }));
+            if (editingChecklist) {
+                await dispatch(updateChecklist({ id: editingChecklist.id, payload: checklistForm })).unwrap();
+                dispatch(showToast({ variant: 'success', message: `Checklist "${checklistForm.name}" updated successfully` }));
             } else {
-                await dispatch(createWorkflowStageAction(payload)).unwrap();
-                dispatch(showToast({ variant: 'success', message: `Checklist "${form.name}" created successfully` }));
+                const created = await dispatch(createChecklist(checklistForm)).unwrap();
+                dispatch(showToast({ variant: 'success', message: `Checklist "${checklistForm.name}" created successfully` }));
+                setSelectedId(created.id);
             }
-            setModalOpen(false);
+            setChecklistModalOpen(false);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to save checklist' }));
         }
     };
 
-    const confirmDelete = async () => {
-        if (!deleteTarget) return;
-        setDeleting(true);
+    const confirmDeleteChecklist = async () => {
+        if (!deleteChecklistTarget) return;
+        setDeletingChecklist(true);
         try {
-            await dispatch(deleteWorkflowStageAction(deleteTarget.id)).unwrap();
-            dispatch(showToast({ variant: 'success', message: `Checklist "${deleteTarget.name}" deleted successfully` }));
-            setDeleteTarget(null);
+            await dispatch(deleteChecklist(deleteChecklistTarget.id)).unwrap();
+            dispatch(showToast({ variant: 'success', message: `Checklist "${deleteChecklistTarget.name}" deleted successfully` }));
+            if (selectedId === deleteChecklistTarget.id) setSelectedId('');
+            setDeleteChecklistTarget(null);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to delete checklist' }));
         } finally {
-            setDeleting(false);
+            setDeletingChecklist(false);
         }
     };
 
-    const totalChecklistItems = actions.reduce((sum, action) => sum + action.checklistItems.length, 0);
+    const openAddItem = () => {
+        if (!selectedChecklist) return;
+        setEditingItem(null);
+        setItemForm(emptyItemForm(selectedChecklist.items.length));
+        dispatch(clearChecklistsError());
+        setItemModalOpen(true);
+    };
+
+    const openEditItem = (item: ChecklistItem) => {
+        setEditingItem(item);
+        setItemForm({ itemText: item.itemText, required: item.required, orderNo: item.orderNo });
+        dispatch(clearChecklistsError());
+        setItemModalOpen(true);
+    };
+
+    const submitItem = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!selectedChecklist) return;
+        try {
+            if (editingItem) {
+                await dispatch(updateChecklistItem({ checklistId: selectedChecklist.id, itemId: editingItem.id, payload: itemForm })).unwrap();
+                dispatch(showToast({ variant: 'success', message: 'Checklist item updated successfully' }));
+            } else {
+                await dispatch(addChecklistItem({ checklistId: selectedChecklist.id, payload: itemForm })).unwrap();
+                dispatch(showToast({ variant: 'success', message: 'Checklist item added successfully' }));
+            }
+            setItemModalOpen(false);
+        } catch (err) {
+            dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to save checklist item' }));
+        }
+    };
+
+    const confirmDeleteItem = async () => {
+        if (!selectedChecklist || !deleteItemTarget) return;
+        setDeletingItem(true);
+        try {
+            await dispatch(deleteChecklistItem({ checklistId: selectedChecklist.id, itemId: deleteItemTarget.id })).unwrap();
+            dispatch(showToast({ variant: 'success', message: 'Checklist item deleted successfully' }));
+            setDeleteItemTarget(null);
+        } catch (err) {
+            dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to delete checklist item' }));
+        } finally {
+            setDeletingItem(false);
+        }
+    };
 
     return (
         <div>
@@ -159,213 +235,254 @@ const WorkflowChecklistsPage = () => {
 
             <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-xl font-bold">Transition Checklists</h1>
-                    <p className="text-white-dark">Gate a transition behind a checklist and/or a required approval comment before it can be taken</p>
+                    <h1 className="text-xl font-bold">Checklist Management</h1>
+                    <p className="text-white-dark">Create reusable checklists and link them to whichever workflow stages need them</p>
+                    <p className="mt-1 text-xs text-white-dark">
+                        Looking to gate a specific transition behind a checklist/approval comment instead?{' '}
+                        <Link href="/dashboard/admin/workflows/transition-gates" className="text-primary hover:underline">
+                            Manage Transition Approval Gates
+                        </Link>
+                        .
+                    </p>
                 </div>
-                <Button onClick={openCreate} disabled={!stageId} variant="primary">
-                    <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                    Add Checklist
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button onClick={openCreateChecklist}>
+                        <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                        New Checklist
+                    </Button>
+                    <Button variant="outline-primary" onClick={openAddItem} disabled={!selectedChecklist}>
+                        <IconPlus className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                        Add Item
+                    </Button>
+                    <Button variant="outline-primary" onClick={() => printAllChecklists(checklists)} disabled={checklists.length === 0}>
+                        <IconPrinter className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                        Print All
+                    </Button>
+                    <Button variant="outline-primary" href="/dashboard/admin/workflows/checklists/linking">
+                        <IconLink className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                        Link Checklists to Workflows
+                    </Button>
+                </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <StatCard label="Checklists on this Stage" value={actions.length} icon={<IconSquareCheck className="h-4 w-4" />} />
-                <StatCard label="Total Checklist Items" value={totalChecklistItems} icon={<IconSquareCheck className="h-4 w-4" />} />
-                <StatCard label="Requiring Approval Comment" value={actions.filter((a) => a.requiresApprovalComment).length} icon={<IconSquareCheck className="h-4 w-4" />} />
-            </div>
-
-            <div className="panel mt-3">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="w-full">
-                        <label htmlFor="workflowId" className="mb-1.5 block text-sm font-semibold">
-                            Workflow *
-                        </label>
-                        <select id="workflowId" className="form-select" value={workflowId} onChange={(e) => setWorkflowId(e.target.value)}>
-                            <option value="">Select a workflow…</option>
-                            {workflows.map((workflow) => (
-                                <option key={workflow.id} value={workflow.id}>
-                                    {workflow.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="w-full">
-                        <label htmlFor="stageId" className="mb-1.5 block text-sm font-semibold">
-                            Stage *
-                        </label>
-                        <select id="stageId" className="form-select" value={stageId} onChange={(e) => setStageId(e.target.value)} disabled={!workflowId}>
-                            <option value="">Select a stage…</option>
-                            {stages.map((stage) => (
-                                <option key={stage.id} value={stage.id}>
-                                    {stage.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+            {error && (
+                <div className="mt-3">
+                    <Alert variant="danger" onClose={() => dispatch(clearChecklistsError())}>
+                        {error}
+                    </Alert>
                 </div>
+            )}
 
-                {error && (
-                    <div className="mt-3">
-                        <Alert variant="danger" onClose={() => dispatch(clearWorkflowStageActionsError())}>
-                            {error}
-                        </Alert>
-                    </div>
-                )}
-
-                <div className="mt-4 space-y-3">
-                    {!stageId ? (
-                        <p className="py-6 text-center text-white-dark">Select a workflow and stage to view its transition checklists.</p>
-                    ) : loading ? (
-                        <div className="flex min-h-[100px] items-center justify-center gap-2">
-                            <Spinner className="h-5 w-5 text-primary" />
-                            <span className="text-white-dark">Loading…</span>
+            <div className="panel mt-3 !p-0">
+                <div className="grid grid-cols-1 lg:grid-cols-3">
+                    <div className="border-b border-white-light p-4 dark:border-white/10 lg:border-b-0 lg:border-r">
+                        <div className="flex items-center gap-1.5 font-semibold">
+                            <IconListCheck className="h-4.5 w-4.5" />
+                            Checklists
                         </div>
-                    ) : actions.length === 0 ? (
-                        <p className="py-6 text-center text-white-dark">No checklists on this stage yet — add one to gate a transition.</p>
-                    ) : (
-                        actions.map((action) => (
-                            <div key={action.id} className="rounded-lg border border-white-light p-3 dark:border-white/10">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                                        <span className="font-semibold">{action.name}</span>
-                                        <span className="text-white-dark">gates transition</span>
-                                        <Badge variant="info">{action.transitionName}</Badge>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Badge variant={action.active ? 'success' : 'secondary'}>{action.active ? 'Active' : 'Inactive'}</Badge>
-                                        <button type="button" className="text-white-dark hover:text-primary" onClick={() => openEdit(action)} aria-label={`Edit ${action.name}`}>
-                                            <IconEdit className="h-4.5 w-4.5" />
-                                        </button>
-                                        <button type="button" className="text-white-dark hover:text-danger" onClick={() => setDeleteTarget(action)} aria-label={`Delete ${action.name}`}>
-                                            <IconTrash className="h-4.5 w-4.5" />
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                    <Badge variant={action.requiresChecklistCompletion ? 'primary' : 'secondary'}>
-                                        {action.requiresChecklistCompletion ? 'Checklist required' : 'Checklist optional'}
-                                    </Badge>
-                                    <Badge variant={action.requiresApprovalComment ? 'primary' : 'secondary'}>
-                                        {action.requiresApprovalComment ? 'Approval comment required' : 'Comment optional'}
-                                    </Badge>
-                                </div>
-
-                                {action.checklistItems.length > 0 && (
-                                    <ul className="mt-3 space-y-1.5 rounded-md bg-[#f6f8fa] p-3 text-xs dark:bg-[#1b2e4b]">
-                                        {[...action.checklistItems]
-                                            .sort((a, b) => a.orderNo - b.orderNo)
-                                            .map((item, index) => (
-                                                <li key={index} className="flex items-center gap-2">
-                                                    <IconSquareCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
-                                                    <span>{item.itemText}</span>
-                                                    {!item.required && <span className="text-white-dark">(optional)</span>}
-                                                </li>
-                                            ))}
-                                    </ul>
-                                )}
+                        {loading ? (
+                            <div className="flex min-h-[100px] items-center justify-center gap-2">
+                                <Spinner className="h-5 w-5 text-primary" />
                             </div>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? 'Edit Checklist' : 'Add Checklist'} size="lg">
-                <form onSubmit={submitForm} className="space-y-4">
-                    <Input id="name" label="Checklist Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="e.g. Manager sign-off" required />
-
-                    <div className="w-full">
-                        <label htmlFor="transitionId" className="mb-1.5 block text-sm font-semibold">
-                            Transition *
-                        </label>
-                        <select
-                            id="transitionId"
-                            className="form-select"
-                            value={form.transitionId}
-                            onChange={(e) => setForm((prev) => ({ ...prev, transitionId: e.target.value }))}
-                            required
-                        >
-                            <option value="">Select…</option>
-                            {availableTransitions.map((transition) => (
-                                <option key={transition.id} value={transition.id}>
-                                    {transition.name} ({transition.fromStageName} → {transition.toStageName})
-                                </option>
-                            ))}
-                        </select>
-                        {availableTransitions.length === 0 && <p className="mt-1 text-xs text-warning">No transitions from this stage are available to gate.</p>}
-                    </div>
-
-                    <div className="flex flex-wrap gap-4">
-                        <Checkbox
-                            id="requiresChecklistCompletion"
-                            label="Requires checklist completion"
-                            checked={form.requiresChecklistCompletion}
-                            onChange={(e) => setForm((prev) => ({ ...prev, requiresChecklistCompletion: e.target.checked }))}
-                        />
-                        <Checkbox
-                            id="requiresApprovalComment"
-                            label="Requires approval comment"
-                            checked={form.requiresApprovalComment}
-                            onChange={(e) => setForm((prev) => ({ ...prev, requiresApprovalComment: e.target.checked }))}
-                        />
-                        <Checkbox id="active" label="Active" checked={form.active} onChange={(e) => setForm((prev) => ({ ...prev, active: e.target.checked }))} />
-                    </div>
-
-                    <div className="w-full">
-                        <div className="mb-1.5 flex items-center justify-between">
-                            <span className="text-sm font-semibold">Checklist Items</span>
-                            <Button type="button" size="sm" variant="outline-primary" onClick={addChecklistItem}>
-                                <IconPlus className="h-4 w-4 shrink-0 ltr:mr-1 rtl:ml-1" />
-                                Add Item
-                            </Button>
-                        </div>
-                        {form.checklistItems.length === 0 ? (
-                            <p className="text-xs text-white-dark">No items yet — add at least one if this checklist requires completion.</p>
+                        ) : checklists.length === 0 ? (
+                            <p className="mt-3 text-sm text-white-dark">No checklists yet — create one to get started.</p>
                         ) : (
-                            <div className="space-y-2">
-                                {form.checklistItems.map((item, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                        <span className="w-5 shrink-0 text-center text-xs text-white-dark">{index + 1}.</span>
-                                        <input
-                                            type="text"
-                                            className="form-input flex-1"
-                                            placeholder="Checklist item text"
-                                            value={item.itemText}
-                                            onChange={(e) => updateChecklistItem(index, { itemText: e.target.value })}
-                                        />
-                                        <Checkbox
-                                            id={`item-required-${index}`}
-                                            label="Required"
-                                            checked={item.required}
-                                            onChange={(e) => updateChecklistItem(index, { required: e.target.checked })}
-                                        />
-                                        <button type="button" className="text-white-dark hover:text-danger" onClick={() => removeChecklistItem(index)} aria-label={`Remove item ${index + 1}`}>
-                                            <IconX className="h-4 w-4" />
+                            <ul className="mt-3 max-h-[500px] space-y-1 overflow-y-auto">
+                                {checklists.map((checklist) => (
+                                    <li key={checklist.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedId(checklist.id)}
+                                            className={`flex w-full flex-col rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                                                selectedChecklist?.id === checklist.id
+                                                    ? 'bg-primary font-semibold text-white'
+                                                    : 'text-dark hover:bg-primary-light hover:text-primary dark:text-white-light dark:hover:bg-primary/20'
+                                            }`}
+                                        >
+                                            <span className="truncate">{checklist.name}</span>
+                                            <span className={`text-xs ${selectedChecklist?.id === checklist.id ? 'text-white/80' : 'text-white-dark'}`}>
+                                                {checklist.totalItems} item{checklist.totalItems === 1 ? '' : 's'}
+                                            </span>
                                         </button>
-                                    </div>
+                                    </li>
                                 ))}
-                            </div>
+                            </ul>
                         )}
                     </div>
 
+                    <div className="p-5 lg:col-span-2">
+                        {!selectedChecklist ? (
+                            <p className="py-10 text-center text-white-dark">Select a checklist on the left, or create a new one.</p>
+                        ) : (
+                            <>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div>
+                                        <h5 className="text-lg font-semibold">{selectedChecklist.name}</h5>
+                                        {selectedChecklist.description && <p className="text-sm text-white-dark">{selectedChecklist.description}</p>}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button size="sm" variant="outline-primary" onClick={() => dispatch(fetchChecklists())}>
+                                            <IconRefresh className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />
+                                            Refresh
+                                        </Button>
+                                        <Button size="sm" variant="outline-primary" onClick={openAddItem}>
+                                            <IconPlus className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />
+                                            Add Item
+                                        </Button>
+                                        <Button size="sm" onClick={() => openEditChecklist(selectedChecklist)}>
+                                            <IconEdit className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />
+                                            Edit Checklist
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                    <div className="rounded-md bg-[#f6f8fa] p-3 dark:bg-[#1b2e4b]">
+                                        <div className="text-xs font-semibold uppercase text-white-dark">Total Items</div>
+                                        <div className="mt-1 text-xl font-bold">{selectedChecklist.totalItems}</div>
+                                    </div>
+                                    <div className="rounded-md bg-[#f6f8fa] p-3 dark:bg-[#1b2e4b]">
+                                        <div className="text-xs font-semibold uppercase text-white-dark">Mandatory Items</div>
+                                        <div className="mt-1 text-xl font-bold">{selectedChecklist.mandatoryItems}</div>
+                                    </div>
+                                    <div className="rounded-md bg-[#f6f8fa] p-3 dark:bg-[#1b2e4b]">
+                                        <div className="text-xs font-semibold uppercase text-white-dark">Used in Stages</div>
+                                        <div className="mt-1 text-xl font-bold">{selectedChecklist.usedInStagesCount}</div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5">
+                                    <div className="text-sm font-semibold">Checklist Items</div>
+                                    {selectedChecklist.items.length === 0 ? (
+                                        <p className="mt-2 text-sm text-white-dark">No items yet — add one above.</p>
+                                    ) : (
+                                        <ul className="mt-2 divide-y divide-white-light dark:divide-white/10">
+                                            {[...selectedChecklist.items]
+                                                .sort((a, b) => a.orderNo - b.orderNo)
+                                                .map((item) => (
+                                                    <li key={item.id} className="flex items-center justify-between gap-2 py-2.5">
+                                                        <div className="flex items-start gap-2">
+                                                            <IconSquareCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-primary" />
+                                                            <div>
+                                                                <div className="text-sm">{item.itemText}</div>
+                                                                <div className="text-xs text-white-dark">
+                                                                    {item.required ? 'Mandatory' : 'Optional'} • Order: {item.orderNo + 1}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex shrink-0 items-center gap-3">
+                                                            <button type="button" className="text-white-dark hover:text-primary" onClick={() => openEditItem(item)} aria-label={`Edit ${item.itemText}`}>
+                                                                <IconEdit className="h-4.5 w-4.5" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="text-white-dark hover:text-danger"
+                                                                onClick={() => setDeleteItemTarget(item)}
+                                                                aria-label={`Delete ${item.itemText}`}
+                                                            >
+                                                                <IconTrash className="h-4.5 w-4.5" />
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                        </ul>
+                                    )}
+                                </div>
+
+                                <div className="mt-5 flex justify-end">
+                                    <button type="button" className="text-xs text-danger hover:underline" onClick={() => setDeleteChecklistTarget(selectedChecklist)}>
+                                        Delete this checklist
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <Modal isOpen={checklistModalOpen} onClose={() => setChecklistModalOpen(false)} title={editingChecklist ? 'Edit Checklist' : 'New Checklist'}>
+                <form onSubmit={submitChecklist} className="space-y-4">
+                    <Input
+                        id="checklist-name"
+                        label="Checklist Name *"
+                        value={checklistForm.name}
+                        onChange={(e) => setChecklistForm((prev) => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g. Claims checklist"
+                        required
+                    />
+                    <Textarea
+                        id="checklist-description"
+                        label="Description"
+                        rows={3}
+                        value={checklistForm.description}
+                        onChange={(e) => setChecklistForm((prev) => ({ ...prev, description: e.target.value }))}
+                    />
+                    <Checkbox
+                        id="checklist-active"
+                        label="Active"
+                        checked={checklistForm.active}
+                        onChange={(e) => setChecklistForm((prev) => ({ ...prev, active: e.target.checked }))}
+                    />
                     <div className="flex items-center justify-end gap-2 pt-2">
-                        <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                        <Button type="button" variant="outline-primary" onClick={() => setChecklistModalOpen(false)}>
                             Cancel
                         </Button>
                         <Button type="submit" disabled={saving}>
-                            {saving ? 'Saving…' : editTarget ? 'Save Changes' : 'Add Checklist'}
+                            {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
+                            {editingChecklist ? 'Save Changes' : 'Create Checklist'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal isOpen={itemModalOpen} onClose={() => setItemModalOpen(false)} title={editingItem ? 'Edit Checklist Item' : 'Add Checklist Item'}>
+                <form onSubmit={submitItem} className="space-y-4">
+                    <Input
+                        id="item-text"
+                        label="Item Text *"
+                        value={itemForm.itemText}
+                        onChange={(e) => setItemForm((prev) => ({ ...prev, itemText: e.target.value }))}
+                        placeholder="e.g. Verify all documents added"
+                        required
+                    />
+                    <Input
+                        id="item-order"
+                        type="number"
+                        min={0}
+                        label="Order"
+                        value={itemForm.orderNo}
+                        onChange={(e) => setItemForm((prev) => ({ ...prev, orderNo: Number(e.target.value) }))}
+                    />
+                    <Checkbox id="item-required" label="Mandatory" checked={itemForm.required} onChange={(e) => setItemForm((prev) => ({ ...prev, required: e.target.checked }))} />
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                        <Button type="button" variant="outline-primary" onClick={() => setItemModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
+                            {editingItem ? 'Save Changes' : 'Add Item'}
                         </Button>
                     </div>
                 </form>
             </Modal>
 
             <ConfirmModal
-                isOpen={!!deleteTarget}
+                isOpen={!!deleteChecklistTarget}
                 title="Delete Checklist"
-                message={`Delete checklist "${deleteTarget?.name}"? This cannot be undone.`}
-                loading={deleting}
-                onConfirm={confirmDelete}
-                onCancel={() => setDeleteTarget(null)}
+                message={`Delete checklist "${deleteChecklistTarget?.name}"? This removes it from every stage it's linked to and cannot be undone.`}
+                loading={deletingChecklist}
+                onConfirm={confirmDeleteChecklist}
+                onCancel={() => setDeleteChecklistTarget(null)}
+            />
+
+            <ConfirmModal
+                isOpen={!!deleteItemTarget}
+                title="Delete Checklist Item"
+                message={`Delete item "${deleteItemTarget?.itemText}"? This cannot be undone.`}
+                loading={deletingItem}
+                onConfirm={confirmDeleteItem}
+                onCancel={() => setDeleteItemTarget(null)}
             />
         </div>
     );

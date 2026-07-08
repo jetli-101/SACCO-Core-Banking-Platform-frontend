@@ -43,6 +43,7 @@ const GroupMembersPanel = ({ members, allUsers, loading, saving, onAdd, onRemove
                 panel={false}
                 title="Assigned Members"
                 count={members.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

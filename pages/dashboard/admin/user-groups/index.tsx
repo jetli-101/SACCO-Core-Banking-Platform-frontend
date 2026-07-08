@@ -97,6 +97,7 @@ const UserGroupsPage = () => {
                 className="mt-3"
                 title="User Groups"
                 count={groups.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

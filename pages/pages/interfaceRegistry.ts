@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { WorkflowStage } from '@/store/slices/workflows/workflowStagesSlice';
 import LoanReviewPanel from '@/components/loans/LoanReviewPanel';
 
 // One transition the caller could take next from an instance's current stage — matches
@@ -34,6 +35,8 @@ export interface WorkflowInterfacePayload {
     /** The instance's module-specific JSON payload (e.g. claim fields, loan fields...). */
     data: Record<string, unknown>;
     availableTransitions: WorkflowAvailableTransition[];
+    /** Every stage of this instance's workflow, ordered — lets the panel show where a transition leads (name, responsible group, interface) before it's taken. */
+    stages: WorkflowStage[];
     /** Directory to pick a "forward to" target from. */
     users: { id: string; username: string; email: string }[];
     /** Forward to another stage. */
@@ -42,6 +45,8 @@ export interface WorkflowInterfacePayload {
     onReassign: (userId: string, comment?: string) => Promise<void>;
     /** Call once an action has completed so the In-Tray can refetch/drop this card. */
     onActed: () => void;
+    /** Shows a Cancel affordance when the panel is rendered inside a modal (e.g. the row-level "Forward" quick action) — omitted on a standalone page like Task Details. */
+    onCancel?: () => void;
 }
 
 export type WorkflowInterfaceComponent = ComponentType<WorkflowInterfacePayload>;

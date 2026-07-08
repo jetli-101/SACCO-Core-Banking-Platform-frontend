@@ -87,6 +87,7 @@ const WorkflowProcessesPage = () => {
                 className="mt-3"
                 title="Active Processes"
                 count={instances.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',
