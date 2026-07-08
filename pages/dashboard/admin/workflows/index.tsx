@@ -133,6 +133,7 @@ const WorkflowsPage = () => {
                 className="mt-3"
                 title="Workflows"
                 count={workflows.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

@@ -162,6 +162,7 @@ const UsersPage = () => {
                 className="mt-3"
                 title="User Accounts"
                 count={users.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

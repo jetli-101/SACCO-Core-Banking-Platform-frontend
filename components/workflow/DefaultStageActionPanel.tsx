@@ -1,52 +1,93 @@
 import { useState } from 'react';
 import type { WorkflowInterfacePayload } from '@/pages/pages/interfaceRegistry';
+import { assignedGroupLabel } from '@/utils/workflowStage';
 import Button from '@/components/ui/Button';
 import Textarea from '@/components/ui/Textarea';
 import Checkbox from '@/components/ui/Checkbox';
+import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 
-type Mode = { kind: 'transition'; transitionId: string } | { kind: 'reassign' } | null;
+const REASSIGN_VALUE = 'REASSIGN';
 
 // The fallback action panel rendered for any stage that hasn't registered its own
 // interface — implements the exact WorkflowInterfacePayload contract, same as any module
-// screen would, so it doubles as the reference implementation for the registry.
-const DefaultStageActionPanel = ({ data, availableTransitions, users, onTransition, onReassign, onActed }: WorkflowInterfacePayload) => {
-    const [mode, setMode] = useState<Mode>(null);
+// screen would, so it doubles as the reference implementation for the registry. Doubles as
+// the "Forward Process" form used by the row-level Forward quick action.
+const DefaultStageActionPanel = ({
+    data,
+    availableTransitions,
+    stages,
+    currentStageId,
+    users,
+    onTransition,
+    onReassign,
+    onActed,
+    onCancel,
+}: WorkflowInterfacePayload) => {
+    const [actionValue, setActionValue] = useState('');
     const [comment, setComment] = useState('');
     const [checked, setChecked] = useState<Record<string, boolean>>({});
-    const [forwardToUserId, setForwardToUserId] = useState('');
+    const [assignedUserId, setAssignedUserId] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const activeTransition = mode?.kind === 'transition' ? availableTransitions.find((t) => t.transitionId === mode.transitionId) : null;
+    const currentStage = stages.find((stage) => stage.id === currentStageId);
+    const activeTransition = actionValue && actionValue !== REASSIGN_VALUE ? availableTransitions.find((t) => t.transitionId === actionValue) : undefined;
+    const nextStage = activeTransition ? stages.find((stage) => stage.id === activeTransition.toStageId) : undefined;
 
     const resetForm = () => {
-        setMode(null);
+        setActionValue('');
         setComment('');
         setChecked({});
-        setForwardToUserId('');
+        setAssignedUserId('');
         setError(null);
     };
 
-    const submitTransition = async () => {
-        if (!activeTransition) return;
-        if (activeTransition.requiresApprovalComment && !comment.trim()) {
-            setError('A comment is required for this action');
+    const submit = async () => {
+        if (!actionValue) {
+            setError('Choose an action');
             return;
         }
+        if (!comment.trim()) {
+            setError('Remarks are required');
+            return;
+        }
+        if (!assignedUserId) {
+            setError('Choose who to assign this to');
+            return;
+        }
+
+        if (actionValue === REASSIGN_VALUE) {
+            setSubmitting(true);
+            setError(null);
+            try {
+                await onReassign(assignedUserId, comment.trim());
+                resetForm();
+                onActed();
+            } catch (err) {
+                setError((err as { message?: string })?.message || 'Unable to forward this process');
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
+        if (!activeTransition) return;
         const missing = activeTransition.checklistItems.filter((item) => item.required && !checked[item.id]);
         if (activeTransition.requiresChecklistCompletion && missing.length > 0) {
             setError(`Complete all required checklist items: ${missing.map((m) => m.itemText).join(', ')}`);
             return;
         }
+
         setSubmitting(true);
         setError(null);
         try {
             await onTransition(activeTransition.transitionId, {
-                comment: comment.trim() || undefined,
+                comment: comment.trim(),
                 completedChecklistItemIds: Object.keys(checked).filter((id) => checked[id]),
             });
+            await onReassign(assignedUserId);
             resetForm();
             onActed();
         } catch (err) {
@@ -56,26 +97,8 @@ const DefaultStageActionPanel = ({ data, availableTransitions, users, onTransiti
         }
     };
 
-    const submitReassign = async () => {
-        if (!forwardToUserId) {
-            setError('Choose who to forward this to');
-            return;
-        }
-        setSubmitting(true);
-        setError(null);
-        try {
-            await onReassign(forwardToUserId, comment.trim() || undefined);
-            resetForm();
-            onActed();
-        } catch (err) {
-            setError((err as { message?: string })?.message || 'Unable to forward this process');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     return (
-        <div className="space-y-3">
+        <div className="space-y-4">
             {data && Object.keys(data).length > 0 && (
                 <pre className="max-h-40 overflow-auto rounded-md bg-[#f6f8fa] p-2.5 text-xs dark:bg-[#1b2e4b]">{JSON.stringify(data, null, 2)}</pre>
             )}
@@ -86,25 +109,54 @@ const DefaultStageActionPanel = ({ data, availableTransitions, users, onTransiti
                 </Alert>
             )}
 
-            {!mode && (
-                <div className="flex flex-wrap gap-2">
-                    {availableTransitions.map((t) => (
-                        <Button key={t.transitionId} size="sm" variant="outline-primary" onClick={() => setMode({ kind: 'transition', transitionId: t.transitionId })}>
-                            {t.name}
-                        </Button>
+            <div className="w-full">
+                <label htmlFor="action" className="mb-1.5 block text-sm font-semibold">
+                    Action *
+                </label>
+                <select id="action" className="form-select" value={actionValue} onChange={(e) => setActionValue(e.target.value)}>
+                    <option value="">Select action</option>
+                    {availableTransitions.map((transition) => (
+                        <option key={transition.transitionId} value={transition.transitionId}>
+                            {transition.name}
+                        </option>
                     ))}
-                    <Button size="sm" variant="outline-secondary" onClick={() => setMode({ kind: 'reassign' })}>
-                        Forward to Person
-                    </Button>
-                </div>
-            )}
+                    <option value={REASSIGN_VALUE}>Forward to another person (no stage change)</option>
+                </select>
+            </div>
 
-            {mode?.kind === 'transition' && activeTransition && (
-                <div className="space-y-3 rounded-md border border-white-light p-3 dark:border-white/10">
-                    <p className="text-sm font-semibold">{activeTransition.name}</p>
+            {activeTransition && (
+                <div className="rounded-md border border-white-light p-3 dark:border-white/10">
+                    <div className="text-xs font-semibold uppercase text-white-dark">Transition Details</div>
+                    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="rounded-md bg-[#f6f8fa] p-2.5 dark:bg-[#1b2e4b]">
+                            <div className="text-xs text-white-dark">Current Stage</div>
+                            <div className="font-semibold">{currentStage?.name}</div>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                                <Badge variant="info" outline>
+                                    {assignedGroupLabel(currentStage)}
+                                </Badge>
+                                <span className="text-white-dark">Interface: {currentStage?.interfaceKey || 'Default'}</span>
+                            </div>
+                        </div>
+                        <div className="rounded-md bg-success-light p-2.5 dark:bg-success/10">
+                            <div className="text-xs text-white-dark">Next Stage</div>
+                            <div className="font-semibold">{nextStage?.name || activeTransition.toStageName}</div>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                                <Badge variant="success" outline>
+                                    {assignedGroupLabel(nextStage)}
+                                </Badge>
+                                <span className="text-white-dark">Interface: {nextStage?.interfaceKey || 'Default'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-3 rounded-md bg-warning-light p-2.5 dark:bg-warning/10">
+                        <div className="text-xs text-white-dark">Action</div>
+                        <div className="font-semibold">{activeTransition.name}</div>
+                    </div>
 
                     {activeTransition.requiresChecklistCompletion && activeTransition.checklistItems.length > 0 && (
-                        <div className="space-y-1.5">
+                        <div className="mt-3 space-y-1.5">
+                            <div className="text-xs font-semibold uppercase text-white-dark">Checklist</div>
                             {activeTransition.checklistItems.map((item) => (
                                 <Checkbox
                                     key={item.id}
@@ -116,50 +168,39 @@ const DefaultStageActionPanel = ({ data, availableTransitions, users, onTransiti
                             ))}
                         </div>
                     )}
-
-                    {activeTransition.requiresApprovalComment && (
-                        <Textarea id="transition-comment" label="Comment *" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} />
-                    )}
-
-                    <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline-primary" onClick={resetForm}>
-                            Cancel
-                        </Button>
-                        <Button size="sm" onClick={submitTransition} disabled={submitting}>
-                            {submitting && <Spinner className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />}
-                            Confirm
-                        </Button>
-                    </div>
                 </div>
             )}
 
-            {mode?.kind === 'reassign' && (
-                <div className="space-y-3 rounded-md border border-white-light p-3 dark:border-white/10">
-                    <div>
-                        <label htmlFor="forward-to" className="mb-1.5 block text-sm font-semibold">
-                            Forward to *
-                        </label>
-                        <select id="forward-to" className="form-select" value={forwardToUserId} onChange={(e) => setForwardToUserId(e.target.value)}>
-                            <option value="">Select a person…</option>
-                            {users.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                    {user.username} ({user.email})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <Textarea id="reassign-comment" label="Note (optional)" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
-                    <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline-primary" onClick={resetForm}>
-                            Cancel
-                        </Button>
-                        <Button size="sm" onClick={submitReassign} disabled={submitting}>
-                            {submitting && <Spinner className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />}
-                            Forward
-                        </Button>
-                    </div>
-                </div>
-            )}
+            <Textarea id="remarks" label="Remarks *" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Enter your comments or remarks" />
+
+            <div className="w-full">
+                <label htmlFor="assign-to-user" className="mb-1.5 block text-sm font-semibold">
+                    Assign to User *
+                </label>
+                <select id="assign-to-user" className="form-select" value={assignedUserId} onChange={(e) => setAssignedUserId(e.target.value)}>
+                    <option value="">Select a user…</option>
+                    {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                            {user.username} ({user.email})
+                        </option>
+                    ))}
+                </select>
+                {assignedUserId && (
+                    <p className="mt-1 text-xs text-white-dark">Responsible Group: {assignedGroupLabel(actionValue === REASSIGN_VALUE ? currentStage : nextStage)}</p>
+                )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+                {onCancel && (
+                    <Button type="button" variant="outline-primary" onClick={onCancel} disabled={submitting}>
+                        Cancel
+                    </Button>
+                )}
+                <Button type="button" onClick={submit} disabled={submitting}>
+                    {submitting && <Spinner className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />}
+                    Forward Task
+                </Button>
+            </div>
         </div>
     );
 };

@@ -29,21 +29,12 @@ interface StageUsage {
     interfaceKey?: string;
 }
 
-// A rotating avatar palette so the registry reads as a colorful "plugin board"
-// rather than a plain list — each registered interface gets a stable color by
-// index, independent of how many are registered.
-const AVATAR_PALETTE = [
-    'bg-primary-light text-primary',
-    'bg-success-light text-success',
-    'bg-info-light text-info',
-    'bg-warning-light text-warning',
-    'bg-danger-light text-danger',
-    'bg-secondary-light text-secondary',
-];
+const GENERIC_FALLBACK_KEY = '__GENERIC_FALLBACK__';
 
 const InterfaceRegistryPage = () => {
     const [stages, setStages] = useState<StageUsage[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedKey, setSelectedKey] = useState<string>('');
 
     useEffect(() => {
         let cancelled = false;
@@ -88,14 +79,37 @@ const InterfaceRegistryPage = () => {
     const fallbackUsages = useMemo(() => stages.filter((stage) => !stage.interfaceKey), [stages]);
     const wiredCount = stages.length - fallbackUsages.length - orphanedUsages.length;
 
+    // The selectable list = every registered interface plus the built-in generic fallback,
+    // so "which stages use this" is answerable for every screen a stage could resolve to.
+    const panelEntries = useMemo(
+        () => [
+            ...registryEntries.map((entry) => ({ key: entry.value, label: entry.label, description: entry.description, path: entry.path, usages: usageByKey[entry.value] || [] })),
+            {
+                key: GENERIC_FALLBACK_KEY,
+                label: 'Generic Action Panel',
+                description:
+                    'Built-in fallback. Renders raw stage data with transition buttons, checklist, comment box, and forward-to-person — used automatically whenever a stage has no interface configured.',
+                path: '@/components/workflow/DefaultStageActionPanel',
+                usages: fallbackUsages,
+            },
+        ],
+        [registryEntries, usageByKey, fallbackUsages]
+    );
+
+    useEffect(() => {
+        if (!selectedKey && panelEntries.length > 0) setSelectedKey(panelEntries[0].key);
+    }, [panelEntries, selectedKey]);
+
+    const selectedEntry = panelEntries.find((entry) => entry.key === selectedKey) || panelEntries[0];
+
     return (
         <div>
             <Breadcrumb />
 
             <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-xl font-bold">Interface Registry</h1>
-                    <p className="text-white-dark">Every action-panel screen registered for a workflow stage, and which stages currently use it</p>
+                    <h1 className="text-xl font-bold">Workflow Interfaces</h1>
+                    <p className="text-white-dark">Manage and view interfaces used across workflow stages</p>
                 </div>
             </div>
 
@@ -149,89 +163,76 @@ const InterfaceRegistryPage = () => {
                         </div>
                     )}
 
-                    <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                        {registryEntries.map((entry, index) => {
-                            const usages = usageByKey[entry.value] || [];
-                            const avatarClass = AVATAR_PALETTE[index % AVATAR_PALETTE.length];
+                    <div className="panel mt-3 !p-0">
+                        <div className="border-b border-white-light p-5 dark:border-white/10">
+                            <h5 className="text-lg font-semibold">Workflow Interfaces</h5>
+                            <p className="text-sm text-white-dark">View and manage interfaces used in workflow stages</p>
+                        </div>
 
-                            return (
-                                <div key={entry.value} className="flex flex-col rounded-lg border border-white-light p-4 dark:border-white/10">
-                                    <div className="flex items-start gap-3">
-                                        <span className={`grid h-11 w-11 shrink-0 place-content-center rounded-full text-lg font-bold ${avatarClass}`}>
-                                            {entry.label.charAt(0)}
-                                        </span>
-                                        <div className="min-w-0">
-                                            <div className="font-semibold">{entry.label}</div>
-                                            <Badge variant="secondary" outline className="mt-1 font-mono text-[11px]">
-                                                {entry.value}
-                                            </Badge>
-                                        </div>
-                                    </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3">
+                            <div className="border-b border-white-light p-4 dark:border-white/10 lg:border-b-0 lg:border-r">
+                                <div className="font-semibold">Available Interfaces</div>
+                                <p className="text-xs text-white-dark">Select an interface to view details</p>
 
-                                    <p className="mt-3 text-sm text-white-dark">{entry.description}</p>
-
-                                    <div className="mt-3 flex items-center gap-1.5 rounded-md bg-[#f6f8fa] px-2.5 py-1.5 text-xs text-white-dark dark:bg-[#1b2e4b]">
-                                        <IconCode className="h-3.5 w-3.5 shrink-0" />
-                                        <code className="truncate">{entry.path}</code>
-                                    </div>
-
-                                    <div className="mt-4 flex-1">
-                                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase text-white-dark">
-                                            <IconLink className="h-3.5 w-3.5" />
-                                            Used by {usages.length} stage{usages.length === 1 ? '' : 's'}
-                                        </div>
-                                        {usages.length === 0 ? (
-                                            <p className="mt-2 text-xs text-white-dark">Not wired to any stage yet — pick it from a stage&apos;s Interface dropdown.</p>
-                                        ) : (
-                                            <div className="mt-2 flex flex-wrap gap-1.5">
-                                                {usages.map((usage) => (
-                                                    <Link
-                                                        key={usage.stageId}
-                                                        href={`/dashboard/admin/workflows/${usage.workflowId}/edit?tab=stages`}
-                                                        className="rounded-full border border-white-light px-2.5 py-1 text-xs hover:border-primary hover:text-primary dark:border-white/10"
-                                                    >
-                                                        {usage.workflowName} · {usage.stageName}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-
-                        <div className="flex flex-col rounded-lg border border-dashed border-white-light p-4 dark:border-white/10">
-                            <div className="flex items-start gap-3">
-                                <span className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-[#ebedf2] text-white-dark dark:bg-[#1b2e4b]">
-                                    <IconLayoutGrid className="h-5 w-5" />
-                                </span>
-                                <div>
-                                    <div className="font-semibold">Generic Action Panel</div>
-                                    <Badge variant="dark" outline className="mt-1 text-[11px]">
-                                        built-in fallback
-                                    </Badge>
-                                </div>
-                            </div>
-                            <p className="mt-3 text-sm text-white-dark">
-                                Always available. Renders raw stage data with transition buttons, checklist, comment box, and forward-to-person — used automatically whenever a
-                                stage has no interface configured.
-                            </p>
-                            <div className="mt-4 flex-1">
-                                <div className="text-xs font-semibold uppercase text-white-dark">
-                                    Used by {fallbackUsages.length} stage{fallbackUsages.length === 1 ? '' : 's'}
-                                </div>
-                                {fallbackUsages.length > 0 && (
-                                    <div className="mt-2 flex flex-wrap gap-1.5">
-                                        {fallbackUsages.map((usage) => (
-                                            <Link
-                                                key={usage.stageId}
-                                                href={`/dashboard/admin/workflows/${usage.workflowId}/edit?tab=stages`}
-                                                className="rounded-full border border-white-light px-2.5 py-1 text-xs hover:border-primary hover:text-primary dark:border-white/10"
+                                <ul className="mt-3 max-h-[420px] space-y-1 overflow-y-auto">
+                                    {panelEntries.map((entry) => (
+                                        <li key={entry.key}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedKey(entry.key)}
+                                                className={`flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                                                    selectedEntry?.key === entry.key
+                                                        ? 'bg-primary font-semibold text-white'
+                                                        : 'text-dark hover:bg-primary-light hover:text-primary dark:text-white-light dark:hover:bg-primary/20'
+                                                }`}
                                             >
-                                                {usage.workflowName} · {usage.stageName}
-                                            </Link>
-                                        ))}
-                                    </div>
+                                                <span className="truncate">{entry.label}</span>
+                                                {entry.usages.length > 0 && (
+                                                    <Badge variant="warning" className={selectedEntry?.key === entry.key ? '!bg-white !text-primary' : ''}>
+                                                        {entry.usages.length}
+                                                    </Badge>
+                                                )}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div className="p-5 lg:col-span-2">
+                                {selectedEntry && (
+                                    <>
+                                        <h6 className="text-base font-semibold">Interface: {selectedEntry.label}</h6>
+                                        <p className="mt-1 text-sm text-white-dark">{selectedEntry.description || 'No description available'}</p>
+
+                                        <div className="mt-3 flex items-center gap-1.5 rounded-md bg-[#f6f8fa] px-2.5 py-1.5 text-xs text-white-dark dark:bg-[#1b2e4b]">
+                                            <IconCode className="h-3.5 w-3.5 shrink-0" />
+                                            <code className="truncate">{selectedEntry.path}</code>
+                                        </div>
+
+                                        <div className="mt-5 flex items-center gap-1.5 text-sm font-semibold">
+                                            <IconLink className="h-4 w-4 shrink-0" />
+                                            Stages Using This Interface
+                                        </div>
+                                        {selectedEntry.usages.length === 0 ? (
+                                            <p className="mt-3 rounded-md bg-[#f6f8fa] p-3 text-sm text-white-dark dark:bg-[#1b2e4b]">
+                                                No stages are currently using the {selectedEntry.label} interface.
+                                            </p>
+                                        ) : (
+                                            <ul className="mt-3 space-y-2">
+                                                {selectedEntry.usages.map((usage) => (
+                                                    <li key={usage.stageId}>
+                                                        <Link
+                                                            href={`/dashboard/admin/workflows/${usage.workflowId}/edit?tab=stages`}
+                                                            className="flex items-center justify-between rounded-md border border-white-light px-3 py-2 text-sm hover:border-primary hover:text-primary dark:border-white/10"
+                                                        >
+                                                            <span>{usage.stageName}</span>
+                                                            <span className="text-xs text-white-dark">{usage.workflowName}</span>
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>

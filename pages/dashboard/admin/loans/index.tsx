@@ -75,6 +75,7 @@ const AllLoanApplicationsPage = () => {
                 className="mt-3"
                 title="Loan Applications"
                 count={loans.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',

@@ -57,6 +57,7 @@ const MemberDirectoryPage = () => {
                 className="mt-3"
                 title="Members"
                 count={members.length}
+                exportable
                 columns={[
                     {
                         header: 'Actions',
