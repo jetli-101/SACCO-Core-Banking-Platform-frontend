@@ -16,6 +16,8 @@ import workflowStatesSlice from './slices/workflows/workflowStatesSlice';
 import workflowInstancesSlice from './slices/workflows/workflowInstancesSlice';
 import workflowInstanceHistorySlice from './slices/workflows/workflowInstanceHistorySlice';
 import workflowMappingsSlice from './slices/workflows/workflowMappingsSlice';
+import workflowStageActionsSlice from './slices/workflows/workflowStageActionsSlice';
+import workflowOutTraySlice from './slices/workflows/workflowOutTraySlice';
 import loansSlice from './slices/loans/loansSlice';
 
 const rootReducer = combineReducers({
@@ -36,6 +38,8 @@ const rootReducer = combineReducers({
     workflowInstances: workflowInstancesSlice,
     workflowInstanceHistory: workflowInstanceHistorySlice,
     workflowMappings: workflowMappingsSlice,
+    workflowStageActions: workflowStageActionsSlice,
+    workflowOutTray: workflowOutTraySlice,
     loans: loansSlice,
 });
 

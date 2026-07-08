@@ -10,6 +10,7 @@ export * from './users';
 export * from './workflows';
 export * from './workflowStages';
 export * from './workflowTransitions';
+export * from './workflowStageActions';
 export * from './workflowStatuses';
 export * from './workflowStates';
 export * from './workflowInstances';

@@ -32,13 +32,14 @@ const WorkflowInstanceDetailPage = () => {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const id = typeof router.query.id === 'string' ? router.query.id : '';
+    const initialTab = typeof router.query.tab === 'string' ? (router.query.tab as TabKey) : 'overview';
 
     const { instances } = useAppSelector((state) => state.workflowInstances);
     const { entries: history, loading: historyLoading } = useAppSelector((state) => state.workflowInstanceHistory);
     const { stages } = useAppSelector((state) => state.workflowStages);
     const instance = instances.find((item) => item.id === id);
 
-    const [tab, setTab] = useState<TabKey>('overview');
+    const [tab, setTab] = useState<TabKey>(initialTab);
 
     useEffect(() => {
         if (!id) return;
