@@ -16,6 +16,7 @@ import { fetchUserGroups } from '@/store/slices/userGroups/userGroupsSlice';
 import { fetchRoles } from '@/store/slices/roles/rolesSlice';
 import { fetchUsers } from '@/store/slices/users/usersSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
+import { getWorkflowInterfaceOptions } from '@/pages/pages/interfaceRegistry';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -49,6 +50,7 @@ const emptyForm = (nextOrder: number): WorkflowStagePayload => ({
     defaultStatusId: undefined,
     isInitial: false,
     isFinal: false,
+    interfaceKey: undefined,
 });
 
 const responsibleIcon = (type: StageResponsibleType) => {
@@ -94,6 +96,8 @@ const WorkflowStagesManager = ({ workFlowId }: WorkflowStagesManagerProps) => {
     const [deleteTarget, setDeleteTarget] = useState<WorkflowStage | null>(null);
     const [deleting, setDeleting] = useState(false);
 
+    const interfaceOptions = useMemo(() => getWorkflowInterfaceOptions(), []);
+
     useEffect(() => {
         dispatch(fetchWorkflowStages(workFlowId));
         dispatch(fetchWorkflowStates());
@@ -127,6 +131,7 @@ const WorkflowStagesManager = ({ workFlowId }: WorkflowStagesManagerProps) => {
             defaultStatusId: stage.defaultStatusId,
             isInitial: stage.isInitial,
             isFinal: stage.isFinal,
+            interfaceKey: stage.interfaceKey,
         });
         dispatch(clearWorkflowStagesError());
         setModalOpen(true);
@@ -361,6 +366,30 @@ const WorkflowStagesManager = ({ workFlowId }: WorkflowStagesManagerProps) => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="w-full">
+                        <label htmlFor="interfaceKey" className="mb-1.5 block text-sm font-semibold">
+                            Interface
+                        </label>
+                        <select
+                            id="interfaceKey"
+                            className="form-select"
+                            value={form.interfaceKey || ''}
+                            onChange={(e) => setForm((prev) => ({ ...prev, interfaceKey: e.target.value || undefined }))}
+                        >
+                            <option value="">None — use the generic action panel</option>
+                            {interfaceOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="mt-1 text-xs text-white-dark">
+                            {form.interfaceKey
+                                ? interfaceOptions.find((option) => option.value === form.interfaceKey)?.description
+                                : 'Which action-panel screen renders in the In-Tray for instances sitting at this stage.'}
+                        </p>
                     </div>
 
                     <div className="flex flex-wrap gap-4">

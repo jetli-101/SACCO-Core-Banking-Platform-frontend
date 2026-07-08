@@ -22,6 +22,7 @@ export interface WorkflowStage {
     defaultStatusName?: string;
     isInitial: boolean;
     isFinal: boolean;
+    interfaceKey?: string;
 }
 
 // Matches WorkFlowStageRequest on the backend.
@@ -38,6 +39,7 @@ export interface WorkflowStagePayload {
     defaultStatusId?: string;
     isInitial: boolean;
     isFinal: boolean;
+    interfaceKey?: string;
 }
 
 interface BackendEnvelope<T> {

@@ -8,6 +8,7 @@ import IconCircleCheck from '@/components/Icon/IconCircleCheck';
 import IconXCircle from '@/components/Icon/IconXCircle';
 import IconLock from '@/components/Icon/IconLock';
 import IconRefresh from '@/components/Icon/IconRefresh';
+import IconSend from '@/components/Icon/IconSend';
 
 interface RowActionsMenuProps {
     onView?: () => void;
@@ -18,12 +19,16 @@ interface RowActionsMenuProps {
     onSuspend?: () => void;
     onReactivate?: () => void;
     onDelete?: () => void;
+    /** Opens the stage's action panel (transitions/checklist/comment) — distinct from onView so pages needing both can offer them separately. */
+    onReview?: () => void;
+    /** Forward-to-person (reassign) — separate from onReview since it's a same-stage handoff, not a transition. */
+    onForward?: () => void;
     label?: string;
 }
 
 // Single three-dot menu used in DataGrid "Actions" columns app-wide, replacing
 // separate inline icon buttons with a View/Edit/Manage Access/Delete dropdown.
-const RowActionsMenu = ({ onView, onEdit, onManageAccess, onApprove, onReject, onSuspend, onReactivate, onDelete, label = 'Row actions' }: RowActionsMenuProps) => {
+const RowActionsMenu = ({ onView, onEdit, onManageAccess, onApprove, onReject, onSuspend, onReactivate, onDelete, onReview, onForward, label = 'Row actions' }: RowActionsMenuProps) => {
     return (
         <div className="dropdown flex justify-center">
             <Dropdown
@@ -42,6 +47,22 @@ const RowActionsMenu = ({ onView, onEdit, onManageAccess, onApprove, onReject, o
                             <button type="button" onClick={onView}>
                                 <IconEye className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
                                 View
+                            </button>
+                        </li>
+                    )}
+                    {onReview && (
+                        <li>
+                            <button type="button" onClick={onReview}>
+                                <IconEye className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                                Review
+                            </button>
+                        </li>
+                    )}
+                    {onForward && (
+                        <li>
+                            <button type="button" onClick={onForward}>
+                                <IconSend className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
+                                Forward
                             </button>
                         </li>
                     )}

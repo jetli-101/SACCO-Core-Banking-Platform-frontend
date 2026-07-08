@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { apiGet, WORKFLOW_INSTANCE_ENDPOINTS } from '../../../urlhelper';
+import { apiGet, apiPost, WORKFLOW_INSTANCE_ENDPOINTS } from '../../../urlhelper';
+import type { WorkflowAvailableTransition } from '@/pages/pages/interfaceRegistry';
 
 // Matches WorkFlowInstanceResponse on the backend.
 export interface WorkflowInstance {
@@ -12,6 +13,7 @@ export interface WorkflowInstance {
     referenceId?: string;
     currentStageId: string;
     currentStageName: string;
+    currentStageInterfaceKey?: string;
     currentStatusId?: string;
     currentStatusName?: string;
     status: 'INITIATED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
@@ -35,6 +37,20 @@ export interface WorkflowInstanceDashboard {
     rejected: number;
 }
 
+// Matches TransitionWorkFlowRequest on the backend.
+export interface TransitionInstancePayload {
+    transitionId: string;
+    comment?: string;
+    completedChecklistItemIds?: string[];
+    dataChanges?: Record<string, unknown>;
+}
+
+// Matches ReassignWorkFlowInstanceRequest on the backend.
+export interface ReassignInstancePayload {
+    assignedToUserId: string;
+    comment?: string;
+}
+
 interface BackendEnvelope<T> {
     success: boolean;
     message: string;
@@ -47,6 +63,13 @@ interface WorkflowInstancesState {
     error: string | null;
     dashboard: WorkflowInstanceDashboard | null;
     dashboardLoading: boolean;
+
+    inTray: WorkflowInstance[];
+    inTrayLoading: boolean;
+    inTrayError: string | null;
+
+    availableTransitionsByInstance: Record<string, WorkflowAvailableTransition[]>;
+    acting: boolean;
 }
 
 const initialState: WorkflowInstancesState = {
@@ -55,6 +78,13 @@ const initialState: WorkflowInstancesState = {
     error: null,
     dashboard: null,
     dashboardLoading: false,
+
+    inTray: [],
+    inTrayLoading: false,
+    inTrayError: null,
+
+    availableTransitionsByInstance: {},
+    acting: false,
 };
 
 export const fetchWorkflowInstances = createAsyncThunk('workflowInstances/fetchAll', async () => {
@@ -71,6 +101,32 @@ export const fetchWorkflowInstanceById = createAsyncThunk('workflowInstances/fet
     const response = await apiGet<BackendEnvelope<WorkflowInstance>>(WORKFLOW_INSTANCE_ENDPOINTS.BY_ID(id));
     return response.data;
 });
+
+export const fetchWorkflowInTray = createAsyncThunk('workflowInstances/fetchInTray', async () => {
+    const response = await apiGet<BackendEnvelope<WorkflowInstance[]>>(WORKFLOW_INSTANCE_ENDPOINTS.IN_TRAY);
+    return response.data;
+});
+
+export const fetchAvailableTransitions = createAsyncThunk('workflowInstances/fetchAvailableTransitions', async (instanceId: string) => {
+    const response = await apiGet<BackendEnvelope<WorkflowAvailableTransition[]>>(WORKFLOW_INSTANCE_ENDPOINTS.AVAILABLE_TRANSITIONS(instanceId));
+    return { instanceId, transitions: response.data };
+});
+
+export const transitionWorkflowInstance = createAsyncThunk(
+    'workflowInstances/transition',
+    async ({ id, payload }: { id: string; payload: TransitionInstancePayload }) => {
+        const response = await apiPost<BackendEnvelope<WorkflowInstance>>(WORKFLOW_INSTANCE_ENDPOINTS.TRANSITION(id), payload);
+        return response.data;
+    }
+);
+
+export const reassignWorkflowInstance = createAsyncThunk(
+    'workflowInstances/reassign',
+    async ({ id, payload }: { id: string; payload: ReassignInstancePayload }) => {
+        const response = await apiPost<BackendEnvelope<WorkflowInstance>>(WORKFLOW_INSTANCE_ENDPOINTS.REASSIGN(id), payload);
+        return response.data;
+    }
+);
 
 const workflowInstancesSlice = createSlice({
     name: 'workflowInstances',
@@ -107,6 +163,39 @@ const workflowInstancesSlice = createSlice({
                 } else {
                     state.instances = [...state.instances, action.payload];
                 }
+            })
+            .addCase(fetchWorkflowInTray.pending, (state) => {
+                state.inTrayLoading = true;
+                state.inTrayError = null;
+            })
+            .addCase(fetchWorkflowInTray.fulfilled, (state, action) => {
+                state.inTrayLoading = false;
+                state.inTray = action.payload;
+            })
+            .addCase(fetchWorkflowInTray.rejected, (state, action) => {
+                state.inTrayLoading = false;
+                state.inTrayError = action.error.message || 'Unable to load in-tray';
+            })
+            .addCase(fetchAvailableTransitions.fulfilled, (state, action) => {
+                state.availableTransitionsByInstance[action.payload.instanceId] = action.payload.transitions;
+            })
+            .addCase(transitionWorkflowInstance.pending, (state) => {
+                state.acting = true;
+            })
+            .addCase(transitionWorkflowInstance.fulfilled, (state) => {
+                state.acting = false;
+            })
+            .addCase(transitionWorkflowInstance.rejected, (state) => {
+                state.acting = false;
+            })
+            .addCase(reassignWorkflowInstance.pending, (state) => {
+                state.acting = true;
+            })
+            .addCase(reassignWorkflowInstance.fulfilled, (state) => {
+                state.acting = false;
+            })
+            .addCase(reassignWorkflowInstance.rejected, (state) => {
+                state.acting = false;
             });
     },
 });
