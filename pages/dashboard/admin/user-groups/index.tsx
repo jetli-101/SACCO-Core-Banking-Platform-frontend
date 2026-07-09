@@ -12,10 +12,12 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PageLoader from '@/components/ui/PageLoader';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconUsersGroup from '@/components/Icon/IconUsersGroup';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconUserPlus from '@/components/Icon/IconUserPlus';
+import IconInfoTriangle from '@/components/Icon/IconInfoTriangle';
 
 const emptyForm: UserGroupPayload = { name: '', description: '' };
 
@@ -67,6 +69,11 @@ const UserGroupsPage = () => {
 
     const totalAssignments = groups.reduce((sum, group) => sum + group.memberCount, 0);
     const avgMembersPerGroup = groups.length ? Math.round(totalAssignments / groups.length) : 0;
+    const unassignedGroups = groups.filter((group) => group.memberCount === 0).length;
+
+    if (groupsLoading && groups.length === 0) {
+        return <PageLoader />;
+    }
 
     return (
         <div>
@@ -79,10 +86,17 @@ const UserGroupsPage = () => {
                 </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total Groups" value={groups.length} icon={<IconUsersGroup className="h-4 w-4" />} />
                 <StatCard label="Total Assignments" value={totalAssignments} icon={<IconUsers className="h-4 w-4" />} />
                 <StatCard label="Avg Members/Group" value={avgMembersPerGroup} icon={<IconUserPlus className="h-4 w-4" />} />
+                <StatCard
+                    label="Unassigned Groups"
+                    value={unassignedGroups}
+                    helperText="No members yet"
+                    icon={<IconInfoTriangle className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
             </div>
 
             {(error || groupsError) && (

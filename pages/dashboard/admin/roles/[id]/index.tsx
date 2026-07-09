@@ -8,9 +8,11 @@ import { showToast } from '@/store/slices/ui/toastSlice';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Tabs from '@/components/ui/Tabs';
+import PageLoader from '@/components/ui/PageLoader';
 import ModulePermissionsAccordion from '@/components/permissions/ModulePermissionsAccordion';
 import GroupMembersPanel from '@/components/permissions/GroupMembersPanel';
 import IconArrowLeft from '@/components/Icon/IconArrowLeft';
@@ -31,10 +33,15 @@ const RoleDetailPage = () => {
     const [form, setForm] = useState<RolePayload>({ name: '', description: '' });
     const [grantedIds, setGrantedIds] = useState<Set<string>>(new Set());
     const [permissionsLoading, setPermissionsLoading] = useState(false);
+    const [roleLoading, setRoleLoading] = useState(false);
 
     useEffect(() => {
         if (!id) return;
-        dispatch(fetchRoleById(id));
+        setRoleLoading(true);
+        dispatch(fetchRoleById(id))
+            .unwrap()
+            .catch(() => undefined)
+            .finally(() => setRoleLoading(false));
         dispatch(fetchModules());
         dispatch(fetchModuleTypes());
         dispatch(fetchUsers());
@@ -111,6 +118,10 @@ const RoleDetailPage = () => {
         []
     );
 
+    if (roleLoading && !role) {
+        return <PageLoader />;
+    }
+
     return (
         <div>
             <Breadcrumb trailingLabel={role?.name} />
@@ -138,10 +149,21 @@ const RoleDetailPage = () => {
                 <Tabs items={tabItems} active={tab} onChange={(key) => setTab(key as TabKey)} />
 
                 {tab === 'details' && (
-                    <form onSubmit={saveDetails} className="max-w-lg space-y-4">
-                        <Input id="name" label="Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required />
-                        <Input id="description" label="Description" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
-                        <div className="flex justify-end pt-2">
+                    <form onSubmit={saveDetails} className="max-w-3xl">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <Input id="roleId" label="Role ID" value={role?.id || ''} disabled readOnly className="bg-white-light/60 dark:bg-dark/40" />
+                            <Input id="name" label="Role Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required />
+                        </div>
+                        <div className="mt-4">
+                            <Textarea
+                                id="description"
+                                label="Description"
+                                rows={3}
+                                value={form.description}
+                                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                            />
+                        </div>
+                        <div className="flex justify-end pt-4">
                             <Button type="submit" disabled={saving}>
                                 {saving && <Spinner className="h-4 w-4 shrink-0 ltr:mr-2 rtl:ml-2" />}
                                 {saving ? 'Saving…' : 'Save Changes'}
@@ -152,9 +174,15 @@ const RoleDetailPage = () => {
 
                 {tab === 'permissions' && (
                     <div>
-                        <p className="mb-4 text-sm text-white-dark">
-                            Choose which modules members with the <span className="font-semibold">{role?.name}</span> role can see in their sidebar.
-                        </p>
+                        <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                                <h5 className="text-base font-semibold">Permission Settings</h5>
+                                <p className="text-sm text-white-dark">
+                                    Choose which modules members with the <span className="font-semibold">{role?.name}</span> role can see in their sidebar.
+                                </p>
+                            </div>
+                            <span className="whitespace-nowrap text-sm font-semibold text-white-dark">{grantedIds.size} permissions assigned</span>
+                        </div>
                         {permissionsLoading ? (
                             <p className="text-sm text-white-dark">Loading permissions…</p>
                         ) : (

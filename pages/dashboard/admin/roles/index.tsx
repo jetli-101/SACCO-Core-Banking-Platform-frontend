@@ -12,10 +12,13 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PageLoader from '@/components/ui/PageLoader';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconUsersGroup from '@/components/Icon/IconUsersGroup';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconUserPlus from '@/components/Icon/IconUserPlus';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
+import IconInfoTriangle from '@/components/Icon/IconInfoTriangle';
 
 const emptyForm: RolePayload = { name: '', description: '' };
 
@@ -67,6 +70,11 @@ const RolesPage = () => {
 
     const totalAssignments = roles.reduce((sum, role) => sum + role.memberCount, 0);
     const avgMembersPerRole = roles.length ? Math.round(totalAssignments / roles.length) : 0;
+    const unassignedRoles = roles.filter((role) => role.memberCount === 0).length;
+
+    if (rolesLoading && roles.length === 0) {
+        return <PageLoader />;
+    }
 
     return (
         <div>
@@ -79,10 +87,17 @@ const RolesPage = () => {
                 </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total Roles" value={roles.length} icon={<IconUsersGroup className="h-4 w-4" />} />
                 <StatCard label="Total Assignments" value={totalAssignments} icon={<IconUsers className="h-4 w-4" />} />
                 <StatCard label="Avg Members/Role" value={avgMembersPerRole} icon={<IconUserPlus className="h-4 w-4" />} />
+                <StatCard
+                    label="Unassigned Roles"
+                    value={unassignedRoles}
+                    helperText="No members yet"
+                    icon={<IconInfoTriangle className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
             </div>
 
             {(error || rolesError) && (
@@ -110,8 +125,8 @@ const RolesPage = () => {
                     {
                         header: 'Status',
                         accessor: () => (
-                            <span className="badge flex w-fit items-center gap-1 bg-success-light text-success">
-                                <span className="h-1.5 w-1.5 rounded-full bg-success" /> Active
+                            <span className="flex w-fit items-center gap-1.5 text-sm font-medium text-success">
+                                <IconCircleCheck className="h-4 w-4 shrink-0" /> Active
                             </span>
                         ),
                     },
