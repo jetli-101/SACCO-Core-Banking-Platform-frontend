@@ -20,6 +20,9 @@ import workflowStageActionsSlice from './slices/workflows/workflowStageActionsSl
 import workflowOutTraySlice from './slices/workflows/workflowOutTraySlice';
 import checklistsSlice from './slices/workflows/checklistsSlice';
 import loansSlice from './slices/loans/loansSlice';
+import loanProductsSlice from './slices/loans/loanProductsSlice';
+import guarantorsSlice from './slices/loans/guarantorsSlice';
+import repaymentsSlice from './slices/loans/repaymentsSlice';
 
 const rootReducer = combineReducers({
     themeConfig: themeConfigSlice,
@@ -43,6 +46,9 @@ const rootReducer = combineReducers({
     workflowOutTray: workflowOutTraySlice,
     checklists: checklistsSlice,
     loans: loansSlice,
+    loanProducts: loanProductsSlice,
+    guarantors: guarantorsSlice,
+    repayments: repaymentsSlice,
 });
 
 export default configureStore({

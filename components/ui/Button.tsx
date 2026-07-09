@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, ReactNode } from 'react';
 import Link from 'next/link';
 
 type Color = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'dark';
-type ButtonVariant = Color | `outline-${Color}` | 'ghost';
+export type ButtonVariant = Color | `outline-${Color}` | 'ghost';
 
 interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
     variant?: ButtonVariant;
