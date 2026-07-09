@@ -1,6 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchModuleTypes, createModuleType, updateModuleType, deleteModuleType, clearModulesError, ModuleType, ModuleTypePayload } from '@/store/slices/modules/modulesSlice';
+import {
+    fetchModuleTypes,
+    fetchModules,
+    createModuleType,
+    updateModuleType,
+    deleteModuleType,
+    clearModulesError,
+    flattenModules,
+    ModuleType,
+    ModuleTypePayload,
+} from '@/store/slices/modules/modulesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import DataGrid from '@/components/ui/DataGrid';
 import StatCard from '@/components/ui/StatCard';
@@ -12,14 +22,18 @@ import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Spinner from '@/components/ui/Spinner';
+import PageLoader from '@/components/ui/PageLoader';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
+import IconInfoTriangle from '@/components/Icon/IconInfoTriangle';
+import IconBox from '@/components/Icon/IconBox';
 
 const emptyForm: ModuleTypePayload = { name: '', textId: '', orderNo: 0, description: '' };
 
 const ModuleTypesPage = () => {
     const dispatch = useAppDispatch();
-    const { moduleTypes, moduleTypesLoading, moduleTypesError, saving, error } = useAppSelector((state) => state.modules);
+    const { moduleTypes, moduleTypesLoading, moduleTypesError, items, saving, error } = useAppSelector((state) => state.modules);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ModuleType | null>(null);
@@ -30,7 +44,16 @@ const ModuleTypesPage = () => {
 
     useEffect(() => {
         dispatch(fetchModuleTypes());
+        dispatch(fetchModules());
     }, [dispatch]);
+
+    const flatModules = useMemo(() => Array.from(flattenModules(items).values()), [items]);
+    const typeUsage = useMemo(
+        () => moduleTypes.map((type) => ({ ...type, moduleCount: flatModules.filter((m) => m.moduleTypeId === type.id).length })),
+        [moduleTypes, flatModules]
+    );
+    const typesInUse = typeUsage.filter((t) => t.moduleCount > 0).length;
+    const mostPopulated = typeUsage.reduce<(typeof typeUsage)[number] | null>((max, t) => (!max || t.moduleCount > max.moduleCount ? t : max), null);
 
     const openCreate = () => {
         setEditing(null);
@@ -86,6 +109,10 @@ const ModuleTypesPage = () => {
         }
     };
 
+    if (moduleTypesLoading && moduleTypes.length === 0) {
+        return <PageLoader />;
+    }
+
     return (
         <div>
             <Breadcrumb />
@@ -101,8 +128,29 @@ const ModuleTypesPage = () => {
                 </Button>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-sm">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total Module Types" value={moduleTypes.length} icon={<IconMenuPages className="h-4 w-4" />} />
+                <StatCard
+                    label="Types In Use"
+                    value={typesInUse}
+                    helperText="Have at least one module"
+                    icon={<IconCircleCheck className="h-4 w-4" />}
+                    iconClassName="bg-success-light text-success"
+                />
+                <StatCard
+                    label="Empty Types"
+                    value={moduleTypes.length - typesInUse}
+                    helperText="No modules assigned yet"
+                    icon={<IconInfoTriangle className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
+                <StatCard
+                    label="Most Populated"
+                    value={mostPopulated?.name || '—'}
+                    helperText={mostPopulated ? `${mostPopulated.moduleCount} modules` : undefined}
+                    icon={<IconBox className="h-4 w-4" />}
+                    iconClassName="bg-info-light text-info"
+                />
             </div>
 
             {(error || moduleTypesError) && (

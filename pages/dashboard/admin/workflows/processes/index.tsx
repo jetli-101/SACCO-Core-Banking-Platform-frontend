@@ -7,6 +7,7 @@ import StatCard from '@/components/ui/StatCard';
 import Badge from '@/components/ui/Badge';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PageLoader from '@/components/ui/PageLoader';
 import IconBolt from '@/components/Icon/IconBolt';
 import IconInfoCircle from '@/components/Icon/IconInfoCircle';
 import IconCalendar from '@/components/Icon/IconCalendar';
@@ -48,6 +49,10 @@ const WorkflowProcessesPage = () => {
         dispatch(fetchWorkflowInstances());
         dispatch(fetchWorkflowInstanceDashboard());
     }, [dispatch]);
+
+    if (loading && instances.length === 0) {
+        return <PageLoader />;
+    }
 
     return (
         <div>

@@ -7,14 +7,46 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import Portals from '../../components/Portals';
 import { useRouter } from 'next/router';
+import PageLoader from '../ui/PageLoader';
+
+// Sidebar clicks are same-app client-side navigations, so the destination page can mount
+// (and its data-fetch can resolve) almost instantly — without an enforced floor the
+// spinner would just flash. Mirrors DataGrid's MIN_REFRESH_DISPLAY_MS convention.
+const MIN_ROUTE_LOADER_MS = 2500;
 
 const DefaultLayout = ({ children }: PropsWithChildren) => {
     const router = useRouter();
     const [showLoader, setShowLoader] = useState(true);
     const [showTopButton, setShowTopButton] = useState(false);
+    const [routeLoading, setRouteLoading] = useState(false);
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const [animation, setAnimation] = useState(themeConfig.animation);
     const dispatch = useDispatch();
+
+    useEffect(() => {
+        let startedAt = 0;
+        let hideTimeout: ReturnType<typeof setTimeout> | undefined;
+
+        const handleStart = () => {
+            startedAt = Date.now();
+            setRouteLoading(true);
+        };
+        const handleDone = () => {
+            const remaining = Math.max(0, MIN_ROUTE_LOADER_MS - (Date.now() - startedAt));
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => setRouteLoading(false), remaining);
+        };
+
+        router.events.on('routeChangeStart', handleStart);
+        router.events.on('routeChangeComplete', handleDone);
+        router.events.on('routeChangeError', handleDone);
+        return () => {
+            router.events.off('routeChangeStart', handleStart);
+            router.events.off('routeChangeComplete', handleDone);
+            router.events.off('routeChangeError', handleDone);
+            clearTimeout(hideTimeout);
+        };
+    }, [router]);
 
     const goToTop = () => {
         document.body.scrollTop = 0;
@@ -109,7 +141,7 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
                         {/* END TOP NAVBAR */}
 
                         {/* BEGIN CONTENT AREA */}
-                        <div className={`${animation} animate__animated p-3`}>{children}</div>
+                        <div className={`${animation} animate__animated p-3`}>{routeLoading ? <PageLoader /> : children}</div>
                         {/* END CONTENT AREA */}
 
                         <Portals />

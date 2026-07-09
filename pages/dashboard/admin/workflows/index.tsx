@@ -12,10 +12,12 @@ import Alert from '@/components/ui/Alert';
 import Badge from '@/components/ui/Badge';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PageLoader from '@/components/ui/PageLoader';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconListCheck from '@/components/Icon/IconListCheck';
 import IconRouter from '@/components/Icon/IconRouter';
 import IconChartSquare from '@/components/Icon/IconChartSquare';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
 import ViewWorkflowModal from '@/components/workflow/ViewWorkflowModal';
 
 const WorkflowsPage = () => {
@@ -50,6 +52,10 @@ const WorkflowsPage = () => {
     const activePercent = dashboard && dashboard.totalWorkFlows > 0 ? Math.round((dashboard.activeWorkFlows / dashboard.totalWorkFlows) * 100) : 0;
     const complexityLabel = !dashboard ? '' : dashboard.averageStages <= 6 ? 'Workflow complexity is optimal' : 'Workflows are running deep — consider simplifying';
 
+    if (workflowsLoading && workflows.length === 0) {
+        return <PageLoader />;
+    }
+
     return (
         <div>
             <Breadcrumb />
@@ -65,11 +71,10 @@ const WorkflowsPage = () => {
                 </Button>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Card>
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-white-dark">Total Workflows</span>
-                        <span className="badge bg-primary-light text-primary">{dashboard?.activeWorkFlows ?? 0} active</span>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                         <span className="grid h-8 w-8 place-content-center rounded-full bg-primary-light text-primary">
@@ -78,11 +83,21 @@ const WorkflowsPage = () => {
                         <span className="text-2xl font-bold">{dashboard?.totalWorkFlows ?? 0}</span>
                         <span className="text-white-dark">total workflows</span>
                     </div>
+                </Card>
+
+                <Card>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-white-dark">Active Workflows</span>
+                        <span className="badge bg-success-light text-success">{activePercent}%</span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                        <span className="grid h-8 w-8 place-content-center rounded-full bg-success-light text-success">
+                            <IconCircleCheck className="h-4.5 w-4.5" />
+                        </span>
+                        <span className="text-2xl font-bold">{dashboard?.activeWorkFlows ?? 0}</span>
+                        <span className="text-white-dark">active workflows</span>
+                    </div>
                     <div className="mt-3">
-                        <div className="mb-1 flex items-center justify-between text-xs text-white-dark">
-                            <span>Active workflows</span>
-                            <span>{activePercent}%</span>
-                        </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-white-light dark:bg-[#1b2e4b]">
                             <div className="h-full rounded-full bg-success" style={{ width: `${activePercent}%` }} />
                         </div>

@@ -9,6 +9,8 @@ import {
     WorkflowStatus,
     WorkflowStatusPayload,
 } from '@/store/slices/workflows/workflowStatusesSlice';
+import { fetchWorkflows } from '@/store/slices/workflows/workflowsSlice';
+import { fetchWorkflowStages } from '@/store/slices/workflows/workflowStagesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import DataGrid from '@/components/ui/DataGrid';
 import StatCard from '@/components/ui/StatCard';
@@ -19,8 +21,12 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PageLoader from '@/components/ui/PageLoader';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconTag from '@/components/Icon/IconTag';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
+import IconInfoTriangle from '@/components/Icon/IconInfoTriangle';
+import IconChartSquare from '@/components/Icon/IconChartSquare';
 
 const emptyForm: WorkflowStatusPayload = { name: '', textId: '', description: '' };
 
@@ -36,6 +42,7 @@ const slugify = (value: string) =>
 const WorkflowStatusesPage = () => {
     const dispatch = useAppDispatch();
     const { statuses, loading, error, saving } = useAppSelector((state) => state.workflowStatuses);
+    const { workflows } = useAppSelector((state) => state.workflows);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<WorkflowStatus | null>(null);
@@ -43,10 +50,39 @@ const WorkflowStatusesPage = () => {
     const [textIdTouched, setTextIdTouched] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<WorkflowStatus | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [usageByStatusId, setUsageByStatusId] = useState<Record<string, number>>({});
 
     useEffect(() => {
         dispatch(fetchWorkflowStatuses());
+        dispatch(fetchWorkflows());
     }, [dispatch]);
+
+    // Cross-references each status against every workflow's stages to show real usage —
+    // WorkflowStatus itself carries no usage count, so this is the only way to know
+    // whether a status is actually referenced (as a stage's default status) or dormant.
+    useEffect(() => {
+        if (workflows.length === 0) return;
+        let cancelled = false;
+        Promise.all(workflows.map((workflow) => dispatch(fetchWorkflowStages(workflow.id)).unwrap().catch(() => [])))
+            .then((results) => {
+                if (cancelled) return;
+                const counts: Record<string, number> = {};
+                results.flat().forEach((stage) => {
+                    if (stage.defaultStatusId) counts[stage.defaultStatusId] = (counts[stage.defaultStatusId] || 0) + 1;
+                });
+                setUsageByStatusId(counts);
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, [dispatch, workflows]);
+
+    const statusesInUse = statuses.filter((status) => (usageByStatusId[status.id] || 0) > 0).length;
+    const mostUsedStatus = statuses.reduce<(WorkflowStatus & { count: number }) | null>((max, status) => {
+        const count = usageByStatusId[status.id] || 0;
+        return count > 0 && (!max || count > max.count) ? { ...status, count } : max;
+    }, null);
 
     const openCreate = () => {
         setEditTarget(null);
@@ -94,6 +130,10 @@ const WorkflowStatusesPage = () => {
         }
     };
 
+    if (loading && statuses.length === 0) {
+        return <PageLoader />;
+    }
+
     return (
         <div>
             <Breadcrumb />
@@ -105,8 +145,29 @@ const WorkflowStatusesPage = () => {
                 </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total Statuses" value={statuses.length} icon={<IconTag className="h-4 w-4" />} />
+                <StatCard
+                    label="In Use"
+                    value={statusesInUse}
+                    helperText="Referenced by at least one stage"
+                    icon={<IconCircleCheck className="h-4 w-4" />}
+                    iconClassName="bg-success-light text-success"
+                />
+                <StatCard
+                    label="Unused"
+                    value={statuses.length - statusesInUse}
+                    helperText="Not referenced by any stage"
+                    icon={<IconInfoTriangle className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
+                <StatCard
+                    label="Most Used Status"
+                    value={mostUsedStatus?.name || '—'}
+                    helperText={mostUsedStatus ? `${mostUsedStatus.count} stage(s)` : 'No usage yet'}
+                    icon={<IconChartSquare className="h-4 w-4" />}
+                    iconClassName="bg-info-light text-info"
+                />
             </div>
 
             {error && (

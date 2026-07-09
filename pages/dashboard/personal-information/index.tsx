@@ -7,6 +7,7 @@ import Breadcrumb from '@/components/ui/Breadcrumb';
 import Avatar from '@/components/ui/Avatar';
 import Input from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
+import PageLoader from '@/components/ui/PageLoader';
 
 const MEMBER_TABS = [
     { key: 'personal', label: 'Personal Information' },
@@ -52,7 +53,7 @@ const PersonalInformationPage = () => {
 
             {isMember ? (
                 loading && !profile ? (
-                    <div className="panel mt-3">Loading…</div>
+                    <PageLoader />
                 ) : profile ? (
                     <div className="mt-3 panel">
                         <div className="flex items-center gap-4">

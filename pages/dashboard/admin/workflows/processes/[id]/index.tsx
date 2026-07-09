@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Tabs from '@/components/ui/Tabs';
 import Spinner from '@/components/ui/Spinner';
+import PageLoader from '@/components/ui/PageLoader';
 import IconArrowLeft from '@/components/Icon/IconArrowLeft';
 import IconClock from '@/components/Icon/IconClock';
 import IconFile from '@/components/Icon/IconFile';
@@ -40,10 +41,15 @@ const WorkflowInstanceDetailPage = () => {
     const instance = instances.find((item) => item.id === id);
 
     const [tab, setTab] = useState<TabKey>(initialTab);
+    const [instanceLoading, setInstanceLoading] = useState(false);
 
     useEffect(() => {
         if (!id) return;
-        dispatch(fetchWorkflowInstanceById(id));
+        setInstanceLoading(true);
+        dispatch(fetchWorkflowInstanceById(id))
+            .unwrap()
+            .catch(() => undefined)
+            .finally(() => setInstanceLoading(false));
         dispatch(fetchWorkflowInstanceHistory(id));
     }, [dispatch, id]);
 
@@ -61,6 +67,10 @@ const WorkflowInstanceDetailPage = () => {
         ],
         []
     );
+
+    if (instanceLoading && !instance) {
+        return <PageLoader />;
+    }
 
     return (
         <div>
