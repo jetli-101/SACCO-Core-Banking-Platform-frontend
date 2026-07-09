@@ -12,6 +12,7 @@ import Input from '@/components/ui/Input';
 import Alert from '@/components/ui/Alert';
 import Spinner from '@/components/ui/Spinner';
 import Tabs from '@/components/ui/Tabs';
+import PageLoader from '@/components/ui/PageLoader';
 
 const emptyForm: UpdateMemberPayload = {
     occupation: '',
@@ -77,7 +78,7 @@ const MemberDetailPage = () => {
             <Breadcrumb trailingLabel={fullName || undefined} />
 
             {loading && !member ? (
-                <div className="panel mt-3">Loading…</div>
+                <PageLoader />
             ) : error ? (
                 <div className="mt-3">
                     <Alert variant="danger">{error}</Alert>

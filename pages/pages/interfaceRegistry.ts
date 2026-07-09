@@ -89,11 +89,25 @@ export const registerWorkflowInterface = (definition: WorkflowInterfaceDefinitio
 /** Options for the Stage form's "Interface" select. */
 export const getWorkflowInterfaceOptions = () => Object.values(interfaceRegistry).map(({ key, label, path, description }) => ({ value: key, label, path, description }));
 
+// LoanReviewPanel itself is stage-agnostic — which action buttons it shows (Forward/
+// Approve/Reject/Return) is derived entirely from the stage's availableTransitions, not
+// from which key it was registered under. It's registered twice, once per named review
+// stage in the Loan Application Approval workflow, purely so the Stage form's Interface
+// dropdown lets an admin pick the one matching the stage they're configuring instead of a
+// single ambiguous "Loan Review" entry.
 registerWorkflowInterface({
-    key: 'LOAN_REVIEW',
-    label: 'Loan Review',
+    key: 'LOAN_OFFICER_REVIEW',
+    label: 'Loan Officer Review',
     path: '@/components/loans/LoanReviewPanel',
-    description: 'Shows the loan summary (member, type, amount, purpose) and lets the reviewer approve, reject, return, or forward it.',
+    description: "Shows the loan summary (member, product, amount, term, guarantors) and lets the loan officer forward it to the Branch Manager or reject it.",
+    component: LoanReviewPanel,
+});
+
+registerWorkflowInterface({
+    key: 'LOAN_MANAGER_APPROVAL',
+    label: 'Branch Manager Approval',
+    path: '@/components/loans/LoanReviewPanel',
+    description: 'Shows the loan summary and lets the branch manager approve (checklist required), reject (reason required), or return it to the loan officer.',
     component: LoanReviewPanel,
 });
 

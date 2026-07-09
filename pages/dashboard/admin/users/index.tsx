@@ -3,19 +3,27 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchUsers, clearUsersError, updateUserStatus, approveMember, rejectMember, inviteUser, InviteUserPayload, AppUser } from '@/store/slices/users/usersSlice';
 import { fetchRoles } from '@/store/slices/roles/rolesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
-import DataGrid from '@/components/ui/DataGrid';
+import DataGrid, { TableColumn } from '@/components/ui/DataGrid';
 import StatCard from '@/components/ui/StatCard';
+import CollapsibleSection from '@/components/ui/CollapsibleSection';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Alert from '@/components/ui/Alert';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PageLoader from '@/components/ui/PageLoader';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Spinner from '@/components/ui/Spinner';
 import Input from '@/components/ui/Input';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconClock from '@/components/Icon/IconClock';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
+import IconUsersGroup from '@/components/Icon/IconUsersGroup';
 import IconPlus from '@/components/Icon/IconPlus';
+
+const ADMIN_ROLE = 'ROLE_SYSTEM_ADMINISTRATOR';
+const DISABLED_STATUSES = ['SUSPENDED', 'LOCKED', 'DEACTIVATED', 'INACTIVE', 'REJECTED'];
+const PENDING_STATUSES = ['PENDING', 'PENDING_ACTIVATION'];
 
 const statusBadgeClass: Record<string, string> = {
     ACTIVE: 'bg-success-light text-success',
@@ -51,8 +59,11 @@ const UsersPage = () => {
         dispatch(fetchRoles());
     }, [dispatch]);
 
-    const pendingCount = users.filter((u) => u.status === 'PENDING').length;
-    const pendingActivationCount = users.filter((u) => u.status === 'PENDING_ACTIVATION').length;
+    const activeUsers = users.filter((u) => u.status === 'ACTIVE');
+    const pendingUsers = users.filter((u) => PENDING_STATUSES.includes(u.status || ''));
+    const disabledUsers = users.filter((u) => DISABLED_STATUSES.includes(u.status || ''));
+    const adminUsers = users.filter((u) => u.roles?.includes(ADMIN_ROLE));
+    const activeShare = users.length === 0 ? 0 : Math.round((activeUsers.length / users.length) * 100);
 
     const closeReasonModal = () => {
         setReasonAction(null);
@@ -129,25 +140,74 @@ const UsersPage = () => {
     // Filter out ROLE_MEMBER from the invitation role picker — staff only
     const staffRoles = roles.filter((r) => r.name !== 'ROLE_MEMBER');
 
+    const userColumns: TableColumn<AppUser>[] = [
+        {
+            header: 'Actions',
+            accessor: (row: AppUser) => (
+                <RowActionsMenu
+                    label={`Actions for ${row.username}`}
+                    onApprove={row.status === 'PENDING' && row.memberId ? () => setApproveTarget(row) : undefined}
+                    onReject={row.status === 'PENDING' && row.memberId ? () => setReasonAction({ type: 'reject', user: row }) : undefined}
+                    onSuspend={row.status === 'ACTIVE' ? () => setReasonAction({ type: 'suspend', user: row }) : undefined}
+                    onReactivate={['SUSPENDED', 'LOCKED', 'DEACTIVATED'].includes(row.status || '') ? () => setReactivateTarget(row) : undefined}
+                />
+            ),
+        },
+        { header: 'Username', accessor: 'username' },
+        { header: 'Email', accessor: 'email' },
+        { header: 'Phone', accessor: (row: AppUser) => row.phone || '—' },
+        { header: 'Roles', accessor: (row: AppUser) => (row.roles?.length ? row.roles.join(', ') : '—') },
+        {
+            header: 'Status',
+            accessor: (row: AppUser) => (
+                <span className={`badge ${statusBadgeClass[row.status || ''] || 'bg-white-light text-white-dark dark:bg-dark/40'}`}>{row.status || '—'}</span>
+            ),
+        },
+    ];
+
+    if (loading && users.length === 0) {
+        return <PageLoader />;
+    }
+
     return (
         <div>
             <Breadcrumb />
 
             <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <h1 className="text-xl font-bold">Users</h1>
-                    <p className="text-white-dark">Every staff and member account in your Sacco</p>
+                    <h1 className="text-xl font-bold">User Management</h1>
+                    <p className="text-white-dark">Monitor and manage all user accounts in your system efficiently.</p>
                 </div>
                 <Button onClick={() => setShowInviteModal(true)}>
                     <IconPlus className="h-4 w-4 shrink-0 ltr:mr-1.5 rtl:ml-1.5" />
-                    Invite Staff User
+                    Add User
                 </Button>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:max-w-lg">
-                <StatCard label="Total Users" value={users.length} icon={<IconUsers className="h-4 w-4" />} />
-                <StatCard label="Pending Approval" value={pendingCount} icon={<IconClock className="h-4 w-4" />} />
-                <StatCard label="Pending Activation" value={pendingActivationCount} icon={<IconClock className="h-4 w-4" />} />
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Total Users" value={users.length} helperText="All Sacco users" icon={<IconUsers className="h-4 w-4" />} />
+                <StatCard
+                    label="Active Users"
+                    value={activeUsers.length}
+                    progress={activeShare}
+                    helperText={`${activeShare}% of total`}
+                    icon={<IconCircleCheck className="h-4 w-4" />}
+                    iconClassName="bg-success-light text-success"
+                />
+                <StatCard
+                    label="Inactive Users"
+                    value={disabledUsers.length}
+                    helperText={`${pendingUsers.length} pending review`}
+                    icon={<IconClock className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
+                <StatCard
+                    label="Admin Users"
+                    value={adminUsers.length}
+                    helperText="System Admin"
+                    icon={<IconUsersGroup className="h-4 w-4" />}
+                    iconClassName="bg-info-light text-info"
+                />
             </div>
 
             {error && (
@@ -158,43 +218,52 @@ const UsersPage = () => {
                 </div>
             )}
 
-            <DataGrid
-                className="mt-3"
-                title="User Accounts"
-                count={users.length}
-                exportable
-                columns={[
-                    {
-                        header: 'Actions',
-                        accessor: (row: AppUser) => (
-                            <RowActionsMenu
-                                label={`Actions for ${row.username}`}
-                                onApprove={row.status === 'PENDING' && row.memberId ? () => setApproveTarget(row) : undefined}
-                                onReject={row.status === 'PENDING' && row.memberId ? () => setReasonAction({ type: 'reject', user: row }) : undefined}
-                                onSuspend={row.status === 'ACTIVE' ? () => setReasonAction({ type: 'suspend', user: row }) : undefined}
-                                onReactivate={['SUSPENDED', 'LOCKED', 'DEACTIVATED'].includes(row.status || '') ? () => setReactivateTarget(row) : undefined}
-                            />
-                        ),
-                    },
-                    { header: 'Username', accessor: 'username' },
-                    { header: 'Email', accessor: 'email' },
-                    { header: 'Phone', accessor: (row: AppUser) => row.phone || '—' },
-                    { header: 'Roles', accessor: (row: AppUser) => (row.roles?.length ? row.roles.join(', ') : '—') },
-                    {
-                        header: 'Status',
-                        accessor: (row: AppUser) => (
-                            <span className={`badge ${statusBadgeClass[row.status || ''] || 'bg-white-light text-white-dark dark:bg-dark/40'}`}>{row.status || '—'}</span>
-                        ),
-                    },
-                ]}
-                data={users}
-                rowKey={(row) => row.id}
-                searchKeys={['username', 'email', 'phone']}
-                searchPlaceholder="Search users..."
-                loading={loading}
-                emptyMessage="No users yet"
-                onRefresh={() => dispatch(fetchUsers())}
-            />
+            <div className="mt-3 space-y-3">
+                <CollapsibleSection title="Active Users" count={activeUsers.length} badgeVariant="success" defaultOpen>
+                    <DataGrid
+                        panel={false}
+                        exportable
+                        columns={userColumns}
+                        data={activeUsers}
+                        rowKey={(row) => row.id}
+                        searchKeys={['username', 'email', 'phone']}
+                        searchPlaceholder="Search active users..."
+                        loading={loading}
+                        emptyMessage="No active users"
+                        onRefresh={() => dispatch(fetchUsers())}
+                    />
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Pending Users" count={pendingUsers.length} badgeVariant="warning">
+                    <DataGrid
+                        panel={false}
+                        exportable
+                        columns={userColumns}
+                        data={pendingUsers}
+                        rowKey={(row) => row.id}
+                        searchKeys={['username', 'email', 'phone']}
+                        searchPlaceholder="Search pending users..."
+                        loading={loading}
+                        emptyMessage="No pending users"
+                        onRefresh={() => dispatch(fetchUsers())}
+                    />
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Disabled Users" count={disabledUsers.length} badgeVariant="danger">
+                    <DataGrid
+                        panel={false}
+                        exportable
+                        columns={userColumns}
+                        data={disabledUsers}
+                        rowKey={(row) => row.id}
+                        searchKeys={['username', 'email', 'phone']}
+                        searchPlaceholder="Search disabled users..."
+                        loading={loading}
+                        emptyMessage="No disabled users"
+                        onRefresh={() => dispatch(fetchUsers())}
+                    />
+                </CollapsibleSection>
+            </div>
 
             {/* ── Invite Staff User Modal ── */}
             <Modal isOpen={showInviteModal} onClose={closeInviteModal} title="Invite Staff User" size="md">

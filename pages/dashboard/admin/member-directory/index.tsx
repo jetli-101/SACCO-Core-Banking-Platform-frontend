@@ -8,6 +8,7 @@ import StatCard from '@/components/ui/StatCard';
 import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PageLoader from '@/components/ui/PageLoader';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconCircleCheck from '@/components/Icon/IconCircleCheck';
 import IconClock from '@/components/Icon/IconClock';
@@ -26,6 +27,10 @@ const MemberDirectoryPage = () => {
     const pendingCount = members.filter((member) => member.user.status === 'PENDING').length;
     const femaleCount = members.filter((member) => member.gender === 'FEMALE').length;
     const femalePct = members.length ? Math.round((femaleCount / members.length) * 100) : 0;
+
+    if (loading && members.length === 0) {
+        return <PageLoader />;
+    }
 
     return (
         <div>

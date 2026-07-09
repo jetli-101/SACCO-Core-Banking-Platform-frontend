@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchModules, fetchModuleTypes, createModule, updateModule, deleteModule, clearModulesError, ModuleNode, ModuleRegisterPayload } from '@/store/slices/modules/modulesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
@@ -15,16 +16,18 @@ import Alert from '@/components/ui/Alert';
 import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Spinner from '@/components/ui/Spinner';
-import ModuleAccessModal from '@/components/modules/ModuleAccessModal';
+import PageLoader from '@/components/ui/PageLoader';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 import IconLayoutGrid from '@/components/Icon/IconLayoutGrid';
 import IconBox from '@/components/Icon/IconBox';
+import IconFolder from '@/components/Icon/IconFolder';
 
 const emptyForm: ModuleRegisterPayload = { name: '', textId: '', description: '', urlPath: '', icon: '', orderNo: 0, moduleTypeId: '', parentId: undefined };
 
 const ModulesPage = () => {
     const dispatch = useAppDispatch();
+    const router = useRouter();
     const { itemsLoading, itemsError, moduleTypes, saving, error } = useAppSelector((state) => state.modules);
     const { orderedModules, depthById, parentOptions, moduleTypeName, moduleName, moduleHasChildren, stats } = useModuleHierarchy();
 
@@ -34,7 +37,7 @@ const ModulesPage = () => {
     const [form, setForm] = useState<ModuleRegisterPayload>(emptyForm);
     const [deleteTarget, setDeleteTarget] = useState<ModuleNode | null>(null);
     const [deleting, setDeleting] = useState(false);
-    const [accessTarget, setAccessTarget] = useState<{ id: string; name: string } | null>(null);
+    const [assignPromptName, setAssignPromptName] = useState<string | null>(null);
 
     useEffect(() => {
         dispatch(fetchModules());
@@ -98,6 +101,7 @@ const ModulesPage = () => {
             } else {
                 await dispatch(createModule(payload)).unwrap();
                 dispatch(showToast({ variant: 'success', message: `Module "${form.name}" created successfully` }));
+                setAssignPromptName(form.name);
             }
             setModalOpen(false);
         } catch (err) {
@@ -118,6 +122,10 @@ const ModulesPage = () => {
             setDeleting(false);
         }
     };
+
+    if (itemsLoading && orderedModules.length === 0) {
+        return <PageLoader />;
+    }
 
     return (
         <div>
@@ -146,10 +154,17 @@ const ModulesPage = () => {
                 </div>
             )}
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total Modules" value={stats.total} icon={<IconLayoutGrid className="h-4 w-4" />} />
                 <StatCard label="Top-level Modules" value={stats.topLevel} helperText="No parent module" icon={<IconMenuPages className="h-4 w-4" />} />
                 <StatCard label="Module Types Used" value={stats.typesUsed} icon={<IconBox className="h-4 w-4" />} />
+                <StatCard
+                    label="Parent Modules"
+                    value={orderedModules.filter((m) => moduleHasChildren(m.id)).length}
+                    helperText="Expand to reveal children"
+                    icon={<IconFolder className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
             </div>
 
             {(error || itemsError) && (
@@ -283,14 +298,9 @@ const ModulesPage = () => {
 
                     <div className="flex items-center justify-end gap-2 pt-2 sm:col-span-2">
                         {viewOnly ? (
-                            <>
-                                <Button type="button" variant="outline-primary" onClick={() => setAccessTarget({ id: editing!.id, name: editing!.name })}>
-                                    Manage Access
-                                </Button>
-                                <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
-                                    Close
-                                </Button>
-                            </>
+                            <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
+                                Close
+                            </Button>
                         ) : (
                             <>
                                 <Button type="button" variant="outline-primary" onClick={() => setModalOpen(false)}>
@@ -315,7 +325,18 @@ const ModulesPage = () => {
                 onCancel={() => setDeleteTarget(null)}
             />
 
-            <ModuleAccessModal isOpen={!!accessTarget} moduleId={accessTarget?.id ?? null} moduleName={accessTarget?.name} onClose={() => setAccessTarget(null)} />
+            <ConfirmModal
+                isOpen={!!assignPromptName}
+                title="Assign Role Access"
+                message={`"${assignPromptName}" won't appear in anyone's sidebar until it's granted to at least one role or user group. Go to Roles now to assign it?`}
+                confirmLabel="Go to Roles"
+                cancelLabel="Later"
+                onConfirm={() => {
+                    setAssignPromptName(null);
+                    router.push('/dashboard/admin/roles');
+                }}
+                onCancel={() => setAssignPromptName(null)}
+            />
         </div>
     );
 };

@@ -21,6 +21,7 @@ import Input from '@/components/ui/Input';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Tabs from '@/components/ui/Tabs';
+import PageLoader from '@/components/ui/PageLoader';
 import ModulePermissionsAccordion from '@/components/permissions/ModulePermissionsAccordion';
 import GroupMembersPanel from '@/components/permissions/GroupMembersPanel';
 import IconArrowLeft from '@/components/Icon/IconArrowLeft';
@@ -41,10 +42,15 @@ const UserGroupDetailPage = () => {
     const [form, setForm] = useState<UserGroupPayload>({ name: '', description: '' });
     const [grantedIds, setGrantedIds] = useState<Set<string>>(new Set());
     const [permissionsLoading, setPermissionsLoading] = useState(false);
+    const [groupLoading, setGroupLoading] = useState(false);
 
     useEffect(() => {
         if (!id) return;
-        dispatch(fetchUserGroupById(id));
+        setGroupLoading(true);
+        dispatch(fetchUserGroupById(id))
+            .unwrap()
+            .catch(() => undefined)
+            .finally(() => setGroupLoading(false));
         dispatch(fetchModules());
         dispatch(fetchModuleTypes());
         dispatch(fetchUsers());
@@ -120,6 +126,10 @@ const UserGroupDetailPage = () => {
         ],
         []
     );
+
+    if (groupLoading && !group) {
+        return <PageLoader />;
+    }
 
     return (
         <div>

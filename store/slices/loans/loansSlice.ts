@@ -3,6 +3,10 @@ import { apiGet, apiPost, LOAN_ENDPOINTS } from '../../../urlhelper';
 
 export type LoanType = 'NORMAL' | 'DEVELOPMENT' | 'EMERGENCY' | 'SCHOOL_FEES';
 
+// The loan's own lifecycle (computed server-side from disbursement + repayments) —
+// distinct from `status`, which only tracks the approval workflow.
+export type LoanLifecycleStatus = 'PENDING' | 'ACTIVE' | 'DEFAULTED' | 'CLOSED' | 'REJECTED';
+
 // Matches LoanResponse on the backend.
 export interface Loan {
     id: string;
@@ -23,6 +27,11 @@ export interface Loan {
     status?: 'INITIATED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
     currentStageName?: string;
     priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+
+    loanStatus?: LoanLifecycleStatus;
+    totalRepaid?: number;
+    outstandingBalance?: number;
+    nextDueDate?: string;
 }
 
 // Matches LoanRequest on the backend.
@@ -31,6 +40,11 @@ export interface LoanApplicationPayload {
     amountApplied: number;
     repaymentPeriodMonths: number;
     purpose?: string;
+}
+
+// Matches DisburseLoanRequest on the backend.
+export interface DisburseLoanPayload {
+    disbursedAmount: number;
 }
 
 interface BackendEnvelope<T> {
@@ -47,6 +61,7 @@ interface LoansState {
     selectedLoanLoading: boolean;
     error: string | null;
     applying: boolean;
+    disbursing: boolean;
 }
 
 const initialState: LoansState = {
@@ -57,6 +72,7 @@ const initialState: LoansState = {
     selectedLoanLoading: false,
     error: null,
     applying: false,
+    disbursing: false,
 };
 
 export const applyForLoan = createAsyncThunk('loans/apply', async (payload: LoanApplicationPayload) => {
@@ -76,6 +92,11 @@ export const fetchMyLoans = createAsyncThunk('loans/fetchMine', async () => {
 
 export const fetchLoanById = createAsyncThunk('loans/fetchById', async (id: string) => {
     const response = await apiGet<BackendEnvelope<Loan>>(LOAN_ENDPOINTS.BY_ID(id));
+    return response.data;
+});
+
+export const disburseLoan = createAsyncThunk('loans/disburse', async ({ id, payload }: { id: string; payload: DisburseLoanPayload }) => {
+    const response = await apiPost<BackendEnvelope<Loan>>(LOAN_ENDPOINTS.DISBURSE(id), payload);
     return response.data;
 });
 
@@ -136,6 +157,19 @@ const loansSlice = createSlice({
             .addCase(fetchLoanById.rejected, (state, action) => {
                 state.selectedLoanLoading = false;
                 state.error = action.error.message || 'Unable to load loan';
+            })
+            .addCase(disburseLoan.pending, (state) => {
+                state.disbursing = true;
+                state.error = null;
+            })
+            .addCase(disburseLoan.fulfilled, (state, action) => {
+                state.disbursing = false;
+                if (state.selectedLoan?.id === action.payload.id) state.selectedLoan = action.payload;
+                state.loans = state.loans.map((loan) => (loan.id === action.payload.id ? action.payload : loan));
+            })
+            .addCase(disburseLoan.rejected, (state, action) => {
+                state.disbursing = false;
+                state.error = action.error.message || 'Unable to disburse loan';
             });
     },
 });

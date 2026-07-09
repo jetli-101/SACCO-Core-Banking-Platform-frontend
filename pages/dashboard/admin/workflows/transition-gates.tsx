@@ -28,6 +28,7 @@ import IconPlus from '@/components/Icon/IconPlus';
 import IconEdit from '@/components/Icon/IconEdit';
 import IconTrash from '@/components/Icon/IconTrash';
 import IconSquareCheck from '@/components/Icon/IconSquareCheck';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
 import IconX from '@/components/Icon/IconX';
 
 const emptyForm = (stageId: string): WorkflowStageActionPayload => ({
@@ -170,10 +171,16 @@ const WorkflowTransitionGatesPage = () => {
                 </Button>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Gates on this Stage" value={actions.length} icon={<IconSquareCheck className="h-4 w-4" />} />
                 <StatCard label="Total Checklist Items" value={totalChecklistItems} icon={<IconSquareCheck className="h-4 w-4" />} />
                 <StatCard label="Requiring Approval Comment" value={actions.filter((a) => a.requiresApprovalComment).length} icon={<IconSquareCheck className="h-4 w-4" />} />
+                <StatCard
+                    label="Active Gates"
+                    value={actions.filter((a) => a.active).length}
+                    icon={<IconCircleCheck className="h-4 w-4" />}
+                    iconClassName="bg-success-light text-success"
+                />
             </div>
 
             <div className="panel mt-3">

@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMembers } from '@/store/slices/members/membersSlice';
 import { fetchUsers } from '@/store/slices/users/usersSlice';
 import { fetchMyMenu } from '@/store/slices/modules/modulesSlice';
+import { fetchLoans } from '@/store/slices/loans/loansSlice';
 import { AuthUser } from '@/store/slices/auth/authSlice';
 import { primaryRoleLabel, isStaffRole } from '@/utils/roles';
 import Card from '@/components/ui/Card';
@@ -28,11 +29,13 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     const { members } = useAppSelector((state) => state.members);
     const { users } = useAppSelector((state) => state.users);
     const { menuGroups, menuLoading } = useAppSelector((state) => state.modules);
+    const { loans } = useAppSelector((state) => state.loans);
 
     useEffect(() => {
         dispatch(fetchMembers());
         dispatch(fetchUsers());
         dispatch(fetchMyMenu());
+        dispatch(fetchLoans());
     }, [dispatch]);
 
     const activeCount = members.filter((member) => member.user.status === 'ACTIVE').length;
@@ -57,7 +60,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     </Card>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <MembershipTrendCard />
-                        <LoanDisbursementBarCard />
+                        <LoanDisbursementBarCard loans={loans} />
                     </div>
                 </div>
                 <div className="flex flex-col gap-3">

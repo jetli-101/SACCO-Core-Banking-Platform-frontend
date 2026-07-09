@@ -17,6 +17,7 @@ import {
 } from '@/store/slices/workflows/checklistsSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -25,6 +26,7 @@ import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Checkbox from '@/components/ui/Checkbox';
 import Spinner from '@/components/ui/Spinner';
+import PageLoader from '@/components/ui/PageLoader';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconEdit from '@/components/Icon/IconEdit';
 import IconTrash from '@/components/Icon/IconTrash';
@@ -33,6 +35,8 @@ import IconListCheck from '@/components/Icon/IconListCheck';
 import IconRefresh from '@/components/Icon/IconRefresh';
 import IconPrinter from '@/components/Icon/IconPrinter';
 import IconLink from '@/components/Icon/IconLink';
+import IconCircleCheck from '@/components/Icon/IconCircleCheck';
+import IconChartSquare from '@/components/Icon/IconChartSquare';
 
 const emptyChecklistForm = (): ChecklistPayload => ({ name: '', description: '', active: true });
 const emptyItemForm = (orderNo: number): ChecklistItemPayload => ({ itemText: '', required: true, orderNo });
@@ -229,6 +233,14 @@ const WorkflowChecklistsPage = () => {
         }
     };
 
+    const activeChecklists = checklists.filter((c) => c.active).length;
+    const totalItems = checklists.reduce((sum, c) => sum + c.totalItems, 0);
+    const inUseChecklists = checklists.filter((c) => c.usedInStagesCount > 0).length;
+
+    if (loading && checklists.length === 0) {
+        return <PageLoader />;
+    }
+
     return (
         <div>
             <Breadcrumb />
@@ -263,6 +275,24 @@ const WorkflowChecklistsPage = () => {
                         Link Checklists to Workflows
                     </Button>
                 </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Total Checklists" value={checklists.length} icon={<IconListCheck className="h-4 w-4" />} />
+                <StatCard
+                    label="Active Checklists"
+                    value={activeChecklists}
+                    icon={<IconCircleCheck className="h-4 w-4" />}
+                    iconClassName="bg-success-light text-success"
+                />
+                <StatCard label="Total Items" value={totalItems} icon={<IconSquareCheck className="h-4 w-4" />} iconClassName="bg-info-light text-info" />
+                <StatCard
+                    label="Linked to Stages"
+                    value={inUseChecklists}
+                    helperText="Used in at least one stage"
+                    icon={<IconChartSquare className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
             </div>
 
             {error && (

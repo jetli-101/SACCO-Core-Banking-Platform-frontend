@@ -24,7 +24,8 @@ import Spinner from '@/components/ui/Spinner';
 import IconBox from '@/components/Icon/IconBox';
 import IconInfoTriangle from '@/components/Icon/IconInfoTriangle';
 import IconCalendar from '@/components/Icon/IconCalendar';
-import { dueLabel, enumLabel, isDueSoon, timeInTray } from '@/utils/workflowStage';
+import { dueLabel, enumLabel, isDueSoon, isOverdue, timeInTray } from '@/utils/workflowStage';
+import IconXCircle from '@/components/Icon/IconXCircle';
 
 const priorityBadgeVariant: Record<WorkflowInstance['priority'], 'info' | 'warning' | 'danger'> = {
     LOW: 'info',
@@ -52,6 +53,7 @@ const WorkflowInTrayPage = () => {
             total: inTray.length,
             highPriority: inTray.filter((item) => item.priority === 'HIGH').length,
             dueSoon: inTray.filter((item) => isDueSoon(item.dueDate)).length,
+            overdue: inTray.filter((item) => isOverdue(item.dueDate)).length,
         }),
         [inTray]
     );
@@ -121,7 +123,7 @@ const WorkflowInTrayPage = () => {
                 <p className="text-white-dark">Workflows and tasks requiring your attention or action</p>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total Items" value={counts.total} helperText="All items in your tray" icon={<IconBox className="h-4 w-4" />} />
                 <StatCard
                     label="High Priority"
@@ -138,6 +140,13 @@ const WorkflowInTrayPage = () => {
                     icon={<IconCalendar className="h-4 w-4" />}
                     iconClassName="bg-warning-light text-warning"
                     className="border border-warning/50"
+                />
+                <StatCard
+                    label="Overdue"
+                    value={counts.overdue}
+                    helperText="Past their due date"
+                    icon={<IconXCircle className="h-4 w-4" />}
+                    iconClassName="bg-danger-light text-danger"
                 />
             </div>
 

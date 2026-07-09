@@ -87,8 +87,15 @@ const WorkflowOutTrayPage = () => {
                 <p className="text-white-dark">View workflow processes you have previously acted on</p>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total Actions" value={counts.ALL} helperText="Processes you have acted on" icon={<IconBox className="h-4 w-4" />} />
+                <StatCard
+                    label="In Progress"
+                    value={counts.IN_PROGRESS}
+                    helperText="Still moving through the workflow"
+                    icon={<IconClock className="h-4 w-4" />}
+                    iconClassName="bg-warning-light text-warning"
+                />
                 <StatCard
                     label="Completed"
                     value={counts.COMPLETED}
