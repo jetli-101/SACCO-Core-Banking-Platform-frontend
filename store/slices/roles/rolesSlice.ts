@@ -72,26 +72,11 @@ export const deleteRole = createAsyncThunk('roles/delete', async (id: string) =>
     return id;
 });
 
-// Roles that currently have a given module in their menu — used to pre-populate the
-// "Manage Access" picker for an existing module.
-export const fetchModuleRoles = createAsyncThunk('roles/fetchForModule', async (moduleId: string) => {
-    const response = await apiGet<BackendEnvelope<Role[]>>(MODULE_ENDPOINTS.ROLES(moduleId));
-    return response.data;
-});
-
 // Modules a given role currently has in its menu — used to pre-populate the "Manage
-// Modules" picker for an existing role (the inverse of fetchModuleRoles above).
+// Modules" picker for an existing role.
 export const fetchRoleModules = createAsyncThunk('roles/fetchModules', async (roleId: string) => {
     const response = await apiGet<BackendEnvelope<ModuleNode[]>>(ROLE_ENDPOINTS.MODULES(roleId));
     return response.data;
-});
-
-export const grantModuleToRoles = createAsyncThunk('roles/grantModule', async ({ moduleId, roleIds }: { moduleId: string; roleIds: string[] }) => {
-    await Promise.all(roleIds.map((roleId) => apiPost(ROLE_ENDPOINTS.MODULES(roleId), [moduleId])));
-});
-
-export const revokeModuleFromRoles = createAsyncThunk('roles/revokeModule', async ({ moduleId, roleIds }: { moduleId: string; roleIds: string[] }) => {
-    await Promise.all(roleIds.map((roleId) => apiDelete(ROLE_ENDPOINTS.MODULES(roleId), [moduleId])));
 });
 
 export const grantModulesToRole = createAsyncThunk('roles/grantModules', async ({ roleId, moduleIds }: { roleId: string; moduleIds: string[] }) => {
@@ -182,24 +167,6 @@ const rolesSlice = createSlice({
             .addCase(deleteRole.rejected, (state, action) => {
                 state.saving = false;
                 state.error = action.error.message || 'Unable to delete role';
-            })
-            .addCase(grantModuleToRoles.pending, (state) => {
-                state.saving = true;
-            })
-            .addCase(grantModuleToRoles.fulfilled, (state) => {
-                state.saving = false;
-            })
-            .addCase(grantModuleToRoles.rejected, (state) => {
-                state.saving = false;
-            })
-            .addCase(revokeModuleFromRoles.pending, (state) => {
-                state.saving = true;
-            })
-            .addCase(revokeModuleFromRoles.fulfilled, (state) => {
-                state.saving = false;
-            })
-            .addCase(revokeModuleFromRoles.rejected, (state) => {
-                state.saving = false;
             })
             .addCase(grantModulesToRole.pending, (state) => {
                 state.saving = true;
