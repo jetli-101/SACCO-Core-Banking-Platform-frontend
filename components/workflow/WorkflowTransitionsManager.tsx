@@ -21,9 +21,9 @@ import Input from '@/components/ui/Input';
 import Checkbox from '@/components/ui/Checkbox';
 import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
+import RowActionsMenu from '@/components/ui/RowActionsMenu';
 import IconPlus from '@/components/Icon/IconPlus';
-import IconEdit from '@/components/Icon/IconEdit';
-import IconTrash from '@/components/Icon/IconTrash';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
 
 interface WorkflowTransitionsManagerProps {
     workFlowId: string;
@@ -152,50 +152,54 @@ const WorkflowTransitionsManager = ({ workFlowId }: WorkflowTransitionsManagerPr
                 ) : transitions.length === 0 ? (
                     <p className="py-6 text-center text-white-dark">No transitions yet — connect your stages to define how a process moves forward.</p>
                 ) : (
-                    transitions.map((transition) => (
-                        <div key={transition.id} className="rounded-lg border border-white-light p-3 dark:border-white/10">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex flex-wrap items-center gap-2 text-sm">
-                                    <span className="flex items-center gap-1.5 font-semibold">
-                                        <span className="grid h-6 w-6 place-content-center rounded-full bg-success text-xs text-white">•</span>
-                                        {transition.fromStageName}
-                                    </span>
-                                    <span className="text-white-dark">— {transition.name} →</span>
-                                    <span className="flex items-center gap-1.5 font-semibold">
-                                        <span className="grid h-6 w-6 place-content-center rounded-full bg-success text-xs text-white">•</span>
-                                        {transition.toStageName}
-                                    </span>
+                    transitions.map((transition) => {
+                        const fromOrder = stages.find((stage) => stage.id === transition.fromStageId)?.orderNo;
+                        const toOrder = stages.find((stage) => stage.id === transition.toStageId)?.orderNo;
+                        return (
+                            <div key={transition.id} className="rounded-lg border border-white-light p-3 dark:border-white/10">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <div className="flex flex-1 items-center gap-3 text-sm">
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <span className="grid h-8 w-8 shrink-0 place-content-center rounded-full bg-primary text-xs font-bold text-white">{fromOrder ?? '?'}</span>
+                                            <span className="font-semibold">{transition.fromStageName}</span>
+                                        </div>
+                                        <div className="flex min-w-[80px] flex-1 flex-col items-center px-1">
+                                            <span className="text-xs font-medium text-white-dark">{transition.name}</span>
+                                            <div className="relative mt-1 h-px w-full bg-white-light dark:bg-white/10">
+                                                <IconArrowForward className="absolute -right-1.5 -top-[7px] h-4 w-4 text-white-dark" />
+                                            </div>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <span className="grid h-8 w-8 shrink-0 place-content-center rounded-full bg-success text-xs font-bold text-white">{toOrder ?? '?'}</span>
+                                            <span className="font-semibold">{transition.toStageName}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Badge variant={transition.active ? 'success' : 'secondary'}>{transition.active ? 'Active' : 'Inactive'}</Badge>
+                                        <RowActionsMenu onEdit={() => openEdit(transition)} onDelete={() => setDeleteTarget(transition)} label={`Actions for ${transition.name}`} />
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <Badge variant={transition.active ? 'success' : 'secondary'}>{transition.active ? 'Active' : 'Inactive'}</Badge>
-                                    <button type="button" className="text-white-dark hover:text-primary" onClick={() => openEdit(transition)} aria-label={`Edit ${transition.name}`}>
-                                        <IconEdit className="h-4.5 w-4.5" />
-                                    </button>
-                                    <button type="button" className="text-white-dark hover:text-danger" onClick={() => setDeleteTarget(transition)} aria-label={`Delete ${transition.name}`}>
-                                        <IconTrash className="h-4.5 w-4.5" />
-                                    </button>
+                                <div className="mt-3 grid grid-cols-2 gap-3 rounded-md bg-[#f6f8fa] p-3 text-xs dark:bg-[#1b2e4b] sm:grid-cols-4">
+                                    <div>
+                                        <div className="text-white-dark">Action Type</div>
+                                        <div className="font-semibold">{actionTypeLabels[transition.actionType]}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-white-dark">Name</div>
+                                        <div className="font-semibold">{transition.name}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-white-dark">Status</div>
+                                        <div className="font-semibold">{transition.resultingStatusName || '—'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-white-dark">Description</div>
+                                        <div className="font-semibold">{transition.description || '—'}</div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="mt-3 grid grid-cols-2 gap-3 rounded-md bg-[#f6f8fa] p-3 text-xs dark:bg-[#1b2e4b] sm:grid-cols-4">
-                                <div>
-                                    <div className="text-white-dark">Action Type</div>
-                                    <div className="font-semibold">{actionTypeLabels[transition.actionType]}</div>
-                                </div>
-                                <div>
-                                    <div className="text-white-dark">Name</div>
-                                    <div className="font-semibold">{transition.name}</div>
-                                </div>
-                                <div>
-                                    <div className="text-white-dark">Status</div>
-                                    <div className="font-semibold">{transition.resultingStatusName || '—'}</div>
-                                </div>
-                                <div>
-                                    <div className="text-white-dark">Description</div>
-                                    <div className="font-semibold">{transition.description || '—'}</div>
-                                </div>
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
@@ -230,7 +234,14 @@ const WorkflowTransitionsManager = ({ workFlowId }: WorkflowTransitionsManagerPr
                         </div>
                     </div>
 
-                    <Input id="name" label="Transition Name *" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="e.g. Submit to review" required />
+                    <Input
+                        id="name"
+                        label="Transition Name *"
+                        value={form.name}
+                        onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g. Submit to review"
+                        required
+                    />
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="w-full">
