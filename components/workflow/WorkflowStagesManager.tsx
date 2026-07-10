@@ -25,6 +25,7 @@ import Input from '@/components/ui/Input';
 import Checkbox from '@/components/ui/Checkbox';
 import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
+import Dropdown from '@/components/Dropdown';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconEdit from '@/components/Icon/IconEdit';
 import IconTrash from '@/components/Icon/IconTrash';
@@ -32,6 +33,7 @@ import IconUsersGroup from '@/components/Icon/IconUsersGroup';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconUser from '@/components/Icon/IconUser';
 import IconGlobe from '@/components/Icon/IconGlobe';
+import IconCaretDown from '@/components/Icon/IconCaretDown';
 
 interface WorkflowStagesManagerProps {
     workFlowId: string;
@@ -175,6 +177,37 @@ const WorkflowStagesManager = ({ workFlowId }: WorkflowStagesManagerProps) => {
         }
     };
 
+    // Quick status change straight from the list — resends the stage's existing fields
+    // with only stateId swapped, since the backend takes the full stage payload on update.
+    const quickChangeState = async (stage: WorkflowStage, stateId: string) => {
+        if (stateId === stage.stateId) return;
+        try {
+            await dispatch(
+                updateWorkflowStage({
+                    id: stage.id,
+                    payload: {
+                        workFlowId: stage.workFlowId,
+                        name: stage.name,
+                        description: stage.description || '',
+                        orderNo: stage.orderNo,
+                        responsibleType: stage.responsibleType,
+                        responsibleGroupId: stage.responsibleGroupId,
+                        responsibleRoleId: stage.responsibleRoleId,
+                        responsibleUserIds: stage.responsibleUserIds || [],
+                        stateId,
+                        defaultStatusId: stage.defaultStatusId,
+                        isInitial: stage.isInitial,
+                        isFinal: stage.isFinal,
+                        interfaceKey: stage.interfaceKey,
+                    },
+                })
+            ).unwrap();
+            dispatch(showToast({ variant: 'success', message: `"${stage.name}" is now ${states.find((state) => state.id === stateId)?.name || ''}` }));
+        } catch (err) {
+            dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to update stage status' }));
+        }
+    };
+
     return (
         <div>
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -223,7 +256,26 @@ const WorkflowStagesManager = ({ workFlowId }: WorkflowStagesManagerProps) => {
                                     {responsibleIcon(stage.responsibleType)}
                                     {responsibleLabel(stage)}
                                 </span>
-                                <Badge variant={stage.stateName === 'ACTIVE' ? 'success' : 'secondary'}>{stage.stateName || '—'}</Badge>
+                                <Dropdown
+                                    placement="bottom-end"
+                                    btnClassName={`badge flex items-center gap-1 text-white ${stage.stateName === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}`}
+                                    button={
+                                        <>
+                                            {stage.stateName || '—'}
+                                            <IconCaretDown className="h-3 w-3" />
+                                        </>
+                                    }
+                                >
+                                    <ul className="w-36 !py-1 text-dark dark:text-white-light">
+                                        {states.map((state) => (
+                                            <li key={state.id}>
+                                                <button type="button" className={state.id === stage.stateId ? 'font-semibold text-primary' : ''} onClick={() => quickChangeState(stage, state.id)}>
+                                                    {state.name}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </Dropdown>
                                 <button type="button" className="text-white-dark hover:text-primary" onClick={() => openEdit(stage)} aria-label={`Edit ${stage.name}`}>
                                     <IconEdit className="h-4.5 w-4.5" />
                                 </button>
@@ -372,12 +424,7 @@ const WorkflowStagesManager = ({ workFlowId }: WorkflowStagesManagerProps) => {
                         <label htmlFor="interfaceKey" className="mb-1.5 block text-sm font-semibold">
                             Interface
                         </label>
-                        <select
-                            id="interfaceKey"
-                            className="form-select"
-                            value={form.interfaceKey || ''}
-                            onChange={(e) => setForm((prev) => ({ ...prev, interfaceKey: e.target.value || undefined }))}
-                        >
+                        <select id="interfaceKey" className="form-select" value={form.interfaceKey || ''} onChange={(e) => setForm((prev) => ({ ...prev, interfaceKey: e.target.value || undefined }))}>
                             <option value="">None — use the generic action panel</option>
                             {interfaceOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
