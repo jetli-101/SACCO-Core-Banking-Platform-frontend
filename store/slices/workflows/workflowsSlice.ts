@@ -14,6 +14,10 @@ export interface Workflow {
     initialStageName?: string;
     createdAt: string;
     updatedAt: string;
+    // Roles (beyond ROLE_SYSTEM_ADMINISTRATOR, which always has full access) allowed to
+    // view/configure this specific workflow. Empty means admin-only.
+    allowedRoleIds?: string[];
+    allowedRoleNames?: string[];
 }
 
 // Matches WorkFlowRequest on the backend.
@@ -21,6 +25,7 @@ export interface WorkflowPayload {
     name: string;
     description?: string;
     active: boolean;
+    allowedRoleIds?: string[];
 }
 
 // Matches WorkFlowDashboardResponse on the backend — backs the stat cards on the Workflows list screen.
