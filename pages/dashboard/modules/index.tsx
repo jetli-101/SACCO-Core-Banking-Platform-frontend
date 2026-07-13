@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchModules, fetchModuleTypes, createModule, updateModule, deleteModule, clearModulesError, ModuleNode, ModuleRegisterPayload } from '@/store/slices/modules/modulesSlice';
+import { fetchModules, fetchModuleTypes, fetchMyMenu, createModule, updateModule, deleteModule, clearModulesError, ModuleNode, ModuleRegisterPayload } from '@/store/slices/modules/modulesSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import { useModuleHierarchy } from '@/hooks/useModuleHierarchy';
 import DataGrid from '@/components/ui/DataGrid';
@@ -103,6 +103,9 @@ const ModulesPage = () => {
                 dispatch(showToast({ variant: 'success', message: `Module "${form.name}" created successfully` }));
                 setAssignPromptName(form.name);
             }
+            // Refresh the sidebar's own menu so a rename, re-icon, or reorder shows up
+            // immediately for the admin making the change, without needing a full reload.
+            dispatch(fetchMyMenu());
             setModalOpen(false);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to save module' }));
@@ -115,6 +118,7 @@ const ModulesPage = () => {
         try {
             await dispatch(deleteModule(deleteTarget.id)).unwrap();
             dispatch(showToast({ variant: 'success', message: `Module "${deleteTarget.name}" deleted successfully` }));
+            dispatch(fetchMyMenu());
             setDeleteTarget(null);
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to delete module' }));

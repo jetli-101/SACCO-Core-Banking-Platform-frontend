@@ -18,3 +18,4 @@ export * from './workflowInstanceHistory';
 export * from './workflowMappings';
 export * from './loans';
 export * from './checklists';
+export * from './savings';

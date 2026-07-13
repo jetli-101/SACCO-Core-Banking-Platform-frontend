@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchRoleById, updateRole, fetchRoleModules, grantModulesToRole, revokeModulesFromRole, fetchRoleMembers, addRoleMember, removeRoleMember, RolePayload } from '@/store/slices/roles/rolesSlice';
-import { fetchModules, fetchModuleTypes } from '@/store/slices/modules/modulesSlice';
+import { fetchModules, fetchModuleTypes, fetchMyMenu } from '@/store/slices/modules/modulesSlice';
 import { fetchUsers } from '@/store/slices/users/usersSlice';
 import { showToast } from '@/store/slices/ui/toastSlice';
 import Breadcrumb from '@/components/ui/Breadcrumb';
@@ -86,6 +86,9 @@ const RoleDetailPage = () => {
                 return next;
             });
             dispatch(showToast({ variant: 'success', message: granted ? 'Permission granted' : 'Permission revoked' }));
+            // If the admin just granted/revoked a module on their own role, reflect it in
+            // their sidebar immediately rather than waiting for a reload.
+            dispatch(fetchMyMenu());
         } catch (err) {
             dispatch(showToast({ variant: 'danger', message: (err as { message?: string })?.message || 'Unable to update permission' }));
         }

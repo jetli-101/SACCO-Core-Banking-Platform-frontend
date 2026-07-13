@@ -71,8 +71,6 @@ const Sidebar = () => {
                 }`}
             >
                 <div className="h-full bg-white dark:bg-black">
-                    <div className="h-1 bg-gradient-to-r from-primary to-orange-300" />
-
                     {collapsed ? (
                         <div className="flex justify-center py-3">
                             <button

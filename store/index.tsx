@@ -23,6 +23,9 @@ import loansSlice from './slices/loans/loansSlice';
 import loanProductsSlice from './slices/loans/loanProductsSlice';
 import guarantorsSlice from './slices/loans/guarantorsSlice';
 import repaymentsSlice from './slices/loans/repaymentsSlice';
+import savingsProductsSlice from './slices/savings/savingsProductsSlice';
+import savingsAccountsSlice from './slices/savings/savingsAccountsSlice';
+import savingsTransactionsSlice from './slices/savings/savingsTransactionsSlice';
 
 const rootReducer = combineReducers({
     themeConfig: themeConfigSlice,
@@ -49,6 +52,9 @@ const rootReducer = combineReducers({
     loanProducts: loanProductsSlice,
     guarantors: guarantorsSlice,
     repayments: repaymentsSlice,
+    savingsProducts: savingsProductsSlice,
+    savingsAccounts: savingsAccountsSlice,
+    savingsTransactions: savingsTransactionsSlice,
 });
 
 export default configureStore({
