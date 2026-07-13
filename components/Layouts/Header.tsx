@@ -52,7 +52,7 @@ const Header = () => {
     return (
         <header className={`z-40 ${themeConfig.semidark && themeConfig.menu === 'horizontal' ? 'dark' : ''}`}>
             <div className="shadow-sm">
-                <div className="relative flex w-full items-center bg-white px-5 py-2.5 dark:bg-black">
+                <div className="relative flex w-full items-center bg-gradient-to-l from-[#7c2d12] via-primary to-[#fb923c] px-5 py-2.5">
                     <div className="horizontal-logo flex items-center justify-between ltr:mr-2 rtl:ml-2 lg:hidden">
                         <Link href="/dashboard" className="main-logo flex shrink-0 items-center">
                             <span className="inline-flex items-center rounded-md bg-white p-1 ltr:-ml-1 rtl:-mr-1">
@@ -68,12 +68,12 @@ const Header = () => {
                         </button>
                     </div>
 
-                    <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 sm:justify-end ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
+                    <div className="flex items-center space-x-1.5 text-white ltr:ml-auto rtl:mr-auto rtl:space-x-reverse sm:flex-1 sm:justify-end ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
                         <div className="dropdown shrink-0">
                             <Dropdown
                                 offset={[0, 8]}
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
-                                btnClassName="relative block p-2 rounded-full bg-white-light/40 dark:bg-dark/40 hover:text-primary hover:bg-white-light/90 dark:hover:bg-dark/60"
+                                btnClassName="relative block p-2 rounded-full bg-white text-primary shadow hover:bg-white/90"
                                 button={
                                     <span>
                                         <IconBellBing />
@@ -148,7 +148,14 @@ const Header = () => {
                                 offset={[0, 8]}
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
                                 btnClassName="relative group block"
-                                button={<Avatar className="saturate-50 group-hover:saturate-100" src={resolveFileUrl(authUser?.avatarUrl)} name={authUser?.username} size="md" />}
+                                button={
+                                    <Avatar
+                                        className="rounded-full ring-2 ring-white saturate-50 group-hover:saturate-100"
+                                        src={resolveFileUrl(authUser?.avatarUrl)}
+                                        name={authUser?.username}
+                                        size="md"
+                                    />
+                                }
                             >
                                 <ul className="w-[230px] !py-0 font-semibold text-dark dark:text-white-dark dark:text-white-light/90">
                                     <li>
