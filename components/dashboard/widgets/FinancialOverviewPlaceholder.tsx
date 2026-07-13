@@ -9,14 +9,8 @@ const formatKES = (amount: number) => `KES ${amount.toLocaleString('en-US')}`;
 
 const FinancialOverviewPlaceholder = () => (
     <Card title="Financial Overview" actions={<SampleDataBadge />}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <StatCard label="Loans Outstanding" value={formatKES(mockPortfolioSummary.totalLoansOutstanding)} icon={<IconCashBanknotes className="h-4 w-4" />} />
-            <StatCard
-                label="Savings Balance"
-                value={formatKES(mockPortfolioSummary.totalSavingsBalance)}
-                icon={<IconCashBanknotes className="h-4 w-4" />}
-                iconClassName="bg-success-light text-success"
-            />
             <StatCard
                 label="Loan Repayment Rate"
                 value={`${Math.round(mockPortfolioSummary.loanRepaymentRate * 100)}%`}

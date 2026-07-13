@@ -4,6 +4,7 @@ import { fetchMembers } from '@/store/slices/members/membersSlice';
 import { fetchUsers } from '@/store/slices/users/usersSlice';
 import { fetchMyMenu } from '@/store/slices/modules/modulesSlice';
 import { fetchLoans } from '@/store/slices/loans/loansSlice';
+import { fetchSavingsAccounts } from '@/store/slices/savings/savingsAccountsSlice';
 import { AuthUser } from '@/store/slices/auth/authSlice';
 import { primaryRoleLabel, isStaffRole } from '@/utils/roles';
 import Card from '@/components/ui/Card';
@@ -15,6 +16,7 @@ import LoanDisbursementBarCard from './widgets/LoanDisbursementBarCard';
 import MemberStatusDonutCard from './widgets/MemberStatusDonutCard';
 import PendingApprovalsList from './widgets/PendingApprovalsList';
 import FinancialOverviewPlaceholder from './widgets/FinancialOverviewPlaceholder';
+import SavingsBalanceCard from './widgets/SavingsBalanceCard';
 import IconUsers from '@/components/Icon/IconUsers';
 import IconCircleCheck from '@/components/Icon/IconCircleCheck';
 import IconClock from '@/components/Icon/IconClock';
@@ -30,12 +32,14 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     const { users } = useAppSelector((state) => state.users);
     const { menuGroups, menuLoading } = useAppSelector((state) => state.modules);
     const { loans } = useAppSelector((state) => state.loans);
+    const { accounts: savingsAccounts } = useAppSelector((state) => state.savingsAccounts);
 
     useEffect(() => {
         dispatch(fetchMembers());
         dispatch(fetchUsers());
         dispatch(fetchMyMenu());
         dispatch(fetchLoans());
+        dispatch(fetchSavingsAccounts());
     }, [dispatch]);
 
     const activeCount = members.filter((member) => member.user.status === 'ACTIVE').length;
@@ -69,7 +73,8 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                 </div>
             </div>
 
-            <div className="mt-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <SavingsBalanceCard accounts={savingsAccounts} />
                 <FinancialOverviewPlaceholder />
             </div>
         </div>

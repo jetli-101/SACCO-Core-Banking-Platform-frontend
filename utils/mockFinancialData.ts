@@ -1,7 +1,8 @@
-// Illustrative placeholder data only — no loans/savings/accounting backend exists yet.
-// Every consumer of this module must render a <SampleDataBadge /> next to it so nobody
-// mistakes these figures for real numbers. Replace this file (and its call sites) once
-// real endpoints ship.
+// Illustrative placeholder data only — no accounting/GL backend exists yet, so the loan
+// portfolio's outstanding balance and repayment rate aren't rolled up anywhere real yet
+// (loans and savings now have real modules; this covers what's left). Every consumer of
+// this module must render a <SampleDataBadge /> next to it so nobody mistakes these
+// figures for real numbers. Replace this file (and its call sites) once real endpoints ship.
 
 export const MOCK_DATA_DISCLAIMER = 'Sample data — preview only';
 
@@ -27,6 +28,5 @@ export const mockLoanDisbursement = [
 
 export const mockPortfolioSummary = {
     totalLoansOutstanding: 12_400_000,
-    totalSavingsBalance: 18_900_000,
     loanRepaymentRate: 0.94,
 };
